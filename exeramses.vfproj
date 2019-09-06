@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{669E67D7-B4C1-45AE-B060-5B7A9FABD16F}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug" Interfaces="true"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug" Interfaces="true"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory=".\Release_intel_w64" IntermediateDirectory=".\Release_intel_w64\objexe" TargetName="ramses">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" BufferedIO="true" Preprocess="preprocessYes" AdditionalIncludeDirectories=".\modules" DefaultIncAndUsePath="defaultIncludeCurrent" EnableRecursion="true" SourceFileFormat="fileFormatFree" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" WarnDeclarations="true" WarnUnusedVariables="true" Traceback="true" RuntimeChecks="rtChecksNone" UseMkl="mklSequential"/>
+				<Tool Name="VFLinkerTool" AdditionalOptions=" mkl_intel_lp64.lib mkl_core.lib mkl_sequential.lib" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories=".\modules" SubSystem="subSystemConsole" StackReserveSize="700000000" StackCommitSize="700000000" LargeAddressAware="addrAwareLarge" InterproceduralOptimizations="false" AdditionalDependencies="&quot;libramses.lib&quot;"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="my_models">
+		<File RelativePath=".\my_models\exc_ENTSOE_lim.f90"/>
+		<File RelativePath=".\my_models\exc_ENTSOE_simp.f90"/>
+		<File RelativePath=".\my_models\exc_GENERIC3.f90"/>
+		<File RelativePath=".\my_models\inj_AIR_COND1_mod.f90"/>
+		<File RelativePath=".\my_models\inj_INDM1B_mod.f90"/>
+		<File RelativePath=".\my_models\inj_vfault.f90"/>
+		<File RelativePath=".\my_models\tor_ENTSOE_simp.f90"/>
+		<File RelativePath=".\my_models\twop_HQSVC.f90"/></Filter>
+		<Filter Name="Source Files">
+		<File RelativePath=".\src\dctl_model.f90"/>
+		<File RelativePath=".\src\FUNCTIONS_IN_MODELS.f90"/>
+		<File RelativePath=".\src\main.f90"/>
+		<File RelativePath=".\src\usr_exc_models.f90"/>
+		<File RelativePath=".\src\usr_inj_models.f90"/>
+		<File RelativePath=".\src\usr_tor_models.f90"/>
+		<File RelativePath=".\src\usr_twop_models.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>

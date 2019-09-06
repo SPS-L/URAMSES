@@ -1,0 +1,89 @@
+exc
+ENTSOE_simp
+
+%data
+
+TW1
+TW2
+KS1
+T1
+T2
+T3
+T4
+VSTMIN
+VSTMAX
+TA
+TB
+KE
+TE
+EMIN
+EMAX
+
+%parameters
+
+Vo  = v+(vf/{KE}) &
+
+%states
+
+domega  = 0.
+pss1    = 0.
+pss2    = 0.
+pss3    = 0.
+pss4    = 0.
+dvpss   = 0.
+avr1    = vf/{KE}
+avr2    = vf/{KE}
+
+%observables
+
+domega
+dvpss
+vf
+
+%models
+
+& algeq
+[omega]-1.-[domega]
+& tfder1p
+domega
+pss1
+{TW1}
+{TW1}
+& tfder1p
+pss1
+pss2
+{TW2}
+{TW2}
+& tf1p1z
+pss2
+pss3
+{KS1}
+{T1}
+{T2}
+& tf1p1z
+pss3
+pss4
+1.
+{T3}
+{T4}
+& lim
+pss4
+dvpss
+{VSTMIN}
+{VSTMAX}
+& algeq
+[avr1]-[dvpss]+[v]-{Vo}
+& tf1p1z
+avr1
+avr2
+1.
+{TA}
+{TB}
+& tf1plim
+avr2
+vf
+{KE}
+{TE}
+{EMIN}
+{EMAX}
+

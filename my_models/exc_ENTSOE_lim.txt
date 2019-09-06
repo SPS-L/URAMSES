@@ -1,0 +1,122 @@
+exc
+ENTSOE_lim
+
+%data
+
+TW1
+TW2
+KS1
+T1
+T2
+T3
+T4
+VSTMIN
+VSTMAX
+TA
+TB
+KE
+TE
+EMIN
+EMAX
+
+IFDN
+TOEL
+LOEL
+UOEL
+KOEL
+OELLI
+
+%parameters
+
+Vo  = v+(vf/{KE})
+ad_deltavoel = 14
+
+%states
+
+domega  = 0.
+pss1    = 0.
+pss2    = 0.
+pss3    = 0.
+pss4    = 0.
+dvpss   = 0.
+avr1    = vf/{KE}
+avr2    = vf/{KE}
+
+deltaif1  = [if]-1.05*{IFDN}
+deltaif2  = [if]-1.05*{IFDN}
+intoel1   = {LOEL}
+intoel2   = {KOEL}*{LOEL}
+deltavoel = 0.d0
+
+%observables
+
+domega
+dvpss
+vf
+
+%models
+
+& algeq           PSS
+[omega]-1.-[domega]
+& tfder1p
+domega
+pss1
+{TW1}
+{TW1}
+& tfder1p
+pss1
+pss2
+{TW2}
+{TW2}
+& tf1p1z
+pss2
+pss3
+{KS1}
+{T1}
+{T2}
+& tf1p1z
+pss3
+pss4
+1.
+{T3}
+{T4}
+& lim
+pss4
+dvpss
+{VSTMIN}
+{VSTMAX}
+& algeq             main AVR summing junction
+[avr1]-[dvpss]-[deltavoel]+[v]-{Vo}
+& tf1p1z            AVR : lead-lag filter
+avr1
+avr2
+1.
+{TA}
+{TB}
+& tf1plim           exciter time constant with limits
+avr2
+vf
+{KE}
+{TE}
+{EMIN}
+{EMAX}
+
+& algeq             OEL: difference between if and its permanent limit
+[deltaif1]-[if]+1.05*{IFDN}
+& min1v1c                upper limited by 0.35*IFN
+deltaif1
+deltaif2
+(0.35*{IFDN})
+& inlim                  OEL integrator (timer)
+deltaif2
+intoel1
+{TOEL}
+{LOEL}
+{UOEL}
+& algeq                  multiplication by KOEL
+[intoel2]-{KOEL}*[intoel1]
+& lim                    output limiter of OEL
+intoel2
+deltavoel
+{OELLI}
+0.

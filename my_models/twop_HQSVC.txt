@@ -1,0 +1,129 @@
+twop
+HQSVC
+
+%data
+
+G1            ! PSS : first band : input gain
+T1            !                  : time constant
+a             !                  : time constant ratio
+K1            !                  : output gain
+L1            !                  : output limit
+G2            ! PSS : second band : input gain
+T2            !                   : time constant
+b             !                   : time constant ratio
+K2            !                   : output gain
+L2            !                   : output limit
+Ltot          !     : total output limit
+Kp            ! gain of proportional term of PI controller
+Ki            ! gain of integral term of PI controller
+Bp            ! droop
+Bmax          ! maximum shunt susceptance (pu on base Qnom)
+Bmin          ! minimum shunt susceptance (pu on base Qnom)
+Qnom          ! nominal apparent power of compensator (Mvar)
+Intmin        ! lower bound on integral term of PI controller
+Intmax        ! upper bound on itegral term of PI controller
+Tf            ! equivalent time constant of frequency measurement
+
+%parameters
+
+Bo = ([vy2]*[ix2]-[vx2]*[iy2])*sbase2/(([vx2]**2+[vy2]**2)*{Qnom}) ! initial susceptance
+Vo = dsqrt([vx1]**2+[vy1]**2)+{Bp}*{Bo}                            ! voltage set-point
+
+%states
+
+B = {Bo}           ! shunt suceptance
+Bunlim = {Bo}      ! output of PI controller
+dV = 0.d0          ! input of PI controller
+deltaVpss = 0.d0   ! output of PSS
+deltaVpssunlim = 0.d0   ! output of PSS before limiter
+dV1 = 0.d0         ! output of first band
+dV1unlim = 0.d0    ! output of first band before limiter
+dV11 = 0.d0        ! output of first lead-lag of band 1
+dV12 = 0.d0        ! output of second lead-lag of band 1
+dV2 = 0.d0         ! output of second band
+dV2unlim = 0.d0    ! output of first band before limiter
+dV21 = 0.d0        ! output of first lead-lag of band 2
+dV22 = 0.d0        ! output of second lead-lag of band 2
+f1 = 1.d0          ! frequency at bus 1
+df1 = 0.d0         ! frequency deviation at bus 1
+
+%observables
+
+B
+deltaVpss
+f1
+
+%models
+
+& f_twop_bus1      ! measurement of frequency at bus 1
+f1
+{Tf}
+& algeq            ! frequency deviation
+[f1]-1.d0-[df1]
+& tf1p1z           ! PSS : band 1 : first lead-lag
+df1
+dV11
+{G1}
+({T1}/{a})
+{T1}
+& tf1p1z           !                second lead-lag
+df1
+dV12
+{G1}
+{T1}
+({T1}*{a})
+& algeq            !                dV1unlim function of dV11 and dV12
+{K1}*([dV11]-[dV12])-[dV1unlim]
+& lim              !                limiter
+dV1unlim
+dV1
+-{L1}
+{L1}
+& tf1p1z           ! PSS : band 2 : first lead-lag
+df1
+dV21
+{G2}
+({T2}/{b})
+{T2}
+& tf1p1z           !                second lead-lag
+df1
+dV22
+{G2}
+{T2}
+({T2}*{b})
+& algeq            !                dV2unlim function of dV21 and dV22
+{K2}*([dV21]-[dV22])-[dV2unlim]
+& lim              !                limiter
+dV2unlim
+dV2
+-{L2}
+{L2}
+& algeq            !       sum of two bands
+[dV1]+[dV2]-[deltaVpssunlim]
+& lim              !       final limiter
+deltaVpssunlim
+deltaVpss
+-{Ltot}
+{Ltot}
+& algeq            ! main summation point
+{Vo}-dsqrt([vx1]**2+[vy1]**2)+[deltaVpss]-{Bp}*[Bunlim]-[dV]
+& pictllim         ! PI controller
+dV
+Bunlim
+{Ki}
+{Kp}
+{Intmin}
+{Intmax}
+& lim              ! final output limiter
+Bunlim
+B
+{Bmin}
+{Bmax}
+& algeq            ! current injected by susceptance at bus 2 - x comp
+[ix2]-[B]*[vy2]*{Qnom}/sbase2
+& algeq            ! current injected by susceptance at bus 2 - y comp
+[iy2]+[B]*[vx2]*{Qnom}/sbase2
+& algeq            ! zero current injected at bus 1 - x comp
+[ix1]
+& algeq            ! zero current injected at bus 1 - y comp
+[iy1]

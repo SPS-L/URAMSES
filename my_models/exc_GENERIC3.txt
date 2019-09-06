@@ -1,0 +1,115 @@
+exc
+GENERIC3
+
+%data
+
+G
+Ta
+Tb
+Te
+vfmin
+vfmax
+
+Kpss
+Tw
+T1
+T2
+T3
+T4
+C
+
+if1lim
+if2lim
+Toel
+Koel
+L1
+L2
+L3
+
+%parameters
+
+Vo = [v]+[vf]/{G}            ! AVR voltage set-point
+
+%states
+
+deltaV = [vf]/{G}            ! output of main summing junction of AVR
+V1 = [vf]                    ! output of transient gain reduction = input of exciter
+
+x1pss = 0.d0                 ! PSS : output of washout filter
+x2pss = 0.d0                 ! PSS : output of first lead-lag filter
+x3pss = 0.d0                 ! PSS : output of second lead-lag filter 
+dvpss = 0.d0                 ! PSS : output signal added to main summing junction
+
+xoel1 = [if] - {if1lim}      ! OEL : if - if1lim
+deltaif = [if] - {if1lim}    ! OEL : input of integrator
+xoel2 = {L1}                 ! OEL : output of integrator
+xoel3 = {L1}*{Koel}          ! OEL : output of multiplier
+dvoel = 0.d0                 ! OEL : output signal added to main summing junction
+
+%observables
+
+dvpss
+deltaif
+dvoel
+vf
+
+%models
+
+& algeq                     main summing junction of AVR
+{Vo}-[v]+[dvpss]-[dvoel]-[deltaV]
+& tf1p1z                    transient gain reduction
+deltaV
+V1
+{G}
+{Ta}
+{Tb}
+& tf1plim                   exciter
+V1
+vf
+1.d0
+{Te}
+{vfmin}
+{vfmax}
+
+& tfder1p                   PSS : washout filter
+omega
+x1pss
+({Kpss}/{Tw})
+{Tw}
+& tf1p1z                    PSS : first lead-lag filter
+x1pss
+x2pss
+1.d0
+{T1}
+{T2}
+& tf1p1z                    PSS : second lead-lag filter
+x2pss
+x3pss
+1.d0
+{T3}
+{T4}
+& lim                       PSS : output limiter
+x3pss
+dvpss
+-{C}
+{C}
+
+& algeq                    OEL: difference between if and its permanent limit
+[if]-{if1lim}-[xoel1]
+& min1v1c                  upper limited by if2lim
+xoel1
+deltaif
+{if2lim}
+& inlim                    OEL integrator (timer)
+deltaif
+xoel2
+{Toel}
+{L1}
+{L2}
+& algeq                    multiplication by KOEL
+{Koel}*[xoel2]-[xoel3]
+& lim                      output limiter of OEL
+xoel3
+dvoel
+0.d0
+{L3}
