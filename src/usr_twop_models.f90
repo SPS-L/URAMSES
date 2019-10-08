@@ -13,7 +13,6 @@ subroutine assoc_twop_ptr(modelname,twop_ptr)
    procedure(twop_injector), pointer, intent(out) :: twop_ptr
    ! external twop_HQSVC
 
-   twop_ptr=>null()
    
    select case (modelname)
    !   case('twop_HQSVC')

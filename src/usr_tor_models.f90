@@ -13,7 +13,6 @@ subroutine assoc_torque_ptr(modelname,tor_ptr)
    procedure(torque), pointer, intent(out) :: tor_ptr
    !external tor_ENTSOE_simp
 
-   tor_ptr => null()
 
    select case (modelname)
 

@@ -55,8 +55,8 @@
 		<File RelativePath=".\my_models\tor_ENTSOE_simp.f90"/>
 		<File RelativePath=".\my_models\twop_HQSVC.f90"/></Filter>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
-		<File RelativePath=".\src\dctl_model.f90"/>
 		<File RelativePath=".\src\FUNCTIONS_IN_MODELS.f90"/>
+		<File RelativePath=".\src\usr_dctl_models.f90"/>
 		<File RelativePath=".\src\usr_exc_models.f90"/>
 		<File RelativePath=".\src\usr_inj_models.f90"/>
 		<File RelativePath=".\src\usr_tor_models.f90"/>

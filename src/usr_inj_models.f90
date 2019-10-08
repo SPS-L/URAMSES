@@ -13,8 +13,6 @@ subroutine assoc_inj_ptr(modelname,inj_ptr)
    procedure(injector), pointer, intent(out) :: inj_ptr
    external inj_vfault
 
-
-   inj_ptr=>null()
    
    select case (modelname)
 
