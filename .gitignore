@@ -1,12 +1,8 @@
 /Release_*
 /Debug_*
-*.opensdf
-*.sdf
-*.suo
 *.user
 *.html
 *.layout
 /doc/
-*.depend
 /x64/
 /.vs/
