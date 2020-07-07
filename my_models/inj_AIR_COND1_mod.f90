@@ -32,7 +32,7 @@ end module inj_AIR_COND1_mod
       else
          SNOM=SNOM/sbase
       endif
-
+      
      LSS=LSR+Lls
      LRR=LSR+Llr
      

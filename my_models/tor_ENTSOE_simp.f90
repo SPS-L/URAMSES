@@ -18,11 +18,7 @@
 !.........................................................................................................
 
 subroutine tor_ENTSOE_simp(nb,name,mode,nbxvar,nbzvar,nbdata,nbaddpar,prm,parname,nbobs, &
-   obsname,adtm,eqtyp,tc,t,p,tm,omega,x,z,f,obs)
-
-#ifdef DLL
-!DEC$ ATTRIBUTES DLLEXPORT, ALIAS:"tor_ENTSOE_simp" :: tor_ENTSOE_simp
-#endif
+   obsname,adtm,eqtyp,tc,t,p,tm,omega,x,z,f,obs) 
 
    use MODELING
    use SETTINGS, only : blocktol1

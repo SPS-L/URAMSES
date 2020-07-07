@@ -51,6 +51,7 @@
 		<File RelativePath=".\my_models\inj_AIR_COND1_mod.f90"/>
 		<File RelativePath=".\my_models\tor_ENTSOE_simp.f90"/></Filter>
 		<Filter Name="Source Files">
+		<File RelativePath=".\src\c_interface.f90"/>
 		<File RelativePath=".\src\FUNCTIONS_IN_MODELS.f90"/>
 		<File RelativePath=".\src\main.f90"/>
 		<File RelativePath=".\src\usr_dctl_models.f90"/>

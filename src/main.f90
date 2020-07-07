@@ -10,6 +10,7 @@
 !> @brief Main routine executed at startup
 !> @details .
 program ramses_init
+   use c_interface_mod, only: get_named_prm
    implicit none
 
    interface ramses_interface
@@ -19,6 +20,6 @@ program ramses_init
       end function ramses
    end interface ramses_interface
 
-   call exit(ramses())
+   call exit(ramses()) 
 
 end program ramses_init

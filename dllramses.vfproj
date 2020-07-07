@@ -35,7 +35,7 @@
 				<Tool Name="VFPostBuildEventTool"/>
 				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
 		<Configuration Name="Release|x64" OutputDirectory=".\Release_intel_w64" IntermediateDirectory=".\Release_intel_w64\objdll" TargetName="ramses" ConfigurationType="typeDynamicLibrary">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" BufferedIO="true" Preprocess="preprocessYes" AdditionalIncludeDirectories=".\modules" DefaultIncAndUsePath="defaultIncludeCurrent" PreprocessorDefinitions="DLL;" EnableRecursion="true" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" Traceback="true" RuntimeChecks="rtChecksNone" UseMkl="mklSequential"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" BufferedIO="true" Preprocess="preprocessYes" AdditionalIncludeDirectories=".\modules" DefaultIncAndUsePath="defaultIncludeCurrent" PreprocessorDefinitions="DLL;" EnableRecursion="true" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" BuildDependencies="true" EmitBuildDependencies="true" Traceback="true" RuntimeChecks="rtChecksNone" UseMkl="mklSequential"/>
 				<Tool Name="VFLinkerTool" AdditionalOptions=" mkl_intel_lp64.lib mkl_core.lib mkl_sequential.lib" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories=".\modules" SubSystem="subSystemConsole" StackReserveSize="700000000" StackCommitSize="700000000" LargeAddressAware="addrAwareLarge" LinkDLL="true" InterproceduralOptimizations="false" AdditionalDependencies="&quot;libramses.lib&quot;"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -51,6 +51,7 @@
 		<File RelativePath=".\my_models\inj_AIR_COND1_mod.f90"/>
 		<File RelativePath=".\my_models\tor_ENTSOE_simp.f90"/></Filter>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+		<File RelativePath=".\src\c_interface.f90"/>
 		<File RelativePath=".\src\FUNCTIONS_IN_MODELS.f90"/>
 		<File RelativePath=".\src\usr_dctl_models.f90"/>
 		<File RelativePath=".\src\usr_exc_models.f90"/>
