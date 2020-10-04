@@ -11,13 +11,13 @@ subroutine assoc_torque_ptr(modelname,tor_ptr)
 
    character(len=20), intent(in):: modelname
    procedure(torque), pointer, intent(out) :: tor_ptr
-   !external tor_ENTSOE_simp
-
+   external tor_DEGOV1
 
    select case (modelname)
 
-      !case('tor_ENTSOE_simp')
-      !   tor_ptr => tor_ENTSOE_simp
+
+      case('DEGOV1')
+         tor_ptr => tor_DEGOV1
          
    end select
 
