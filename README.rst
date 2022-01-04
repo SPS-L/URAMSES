@@ -1,7 +1,7 @@
 About
 -----
 
-This project is used to include user models in PyRAMSES. It requires the use of Visual Studio and Intel Fortran Compiler. You can find details how to install them in the file `Installing the Intel oneAPI Fortran compiler.pdf <https://github.com/SPS-L/URAMSES/blob/master/Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf>`.
+This project is used to include user models in PyRAMSES. It requires the use of Visual Studio and Intel Fortran Compiler. You can find details how to install them in the file `Installing the Intel oneAPI Fortran compiler.pdf <https://github.com/SPS-L/URAMSES/blob/master/Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf>`_.
 
 Summarizing the methodology:
 
