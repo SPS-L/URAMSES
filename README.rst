@@ -11,6 +11,6 @@ Summarizing the methodology:
 4. Open the URAMSES.sln with MS Visual Studio
 5. Add the new files from the my_models folder to the dllramses project in MS Studio (right-click on the project --> add existing files)
 6. Compile the dllramses project (right-click --> compile)
-7. Use the following command in pyramses to indicate the location of the newly generated dll file: _ram = pyramses.sim(r'C:\....')_  where inside the quotes you put the directory where your ramses.dll file is located
+7. Use the following command in pyramses to indicate the location of the newly generated dll file: ram = pyramses.sim(r'C:\....')  where inside the quotes you put the directory where your ramses.dll file is located
 
 Please check the documentation under `https://pyramses.sps-lab.org <https://pyramses.sps-lab.org>`_.
