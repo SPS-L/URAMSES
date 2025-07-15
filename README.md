@@ -9,7 +9,7 @@ URAMSES is a project that enables the integration of custom user models into PyR
 ### Required Software
 - **Microsoft Visual Studio** (2019 or later recommended)
 - **Intel oneAPI Fortran Compiler** (formerly Intel Fortran)
-- **PyRAMSES** (Python package) or **STEPSS## (java package)
+- **PyRAMSES** (Python package) or **STEPSS** (java package)
 
 ### Installation Guide
 For detailed installation instructions of the Intel oneAPI Fortran compiler, refer to the included PDF:
