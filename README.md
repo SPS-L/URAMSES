@@ -447,7 +447,7 @@ The `my_models/` directory contains several example models:
 
 ### Documentation
 
-For comprehensive PyRAMSES documentation, visit: [https://pyramses.sps-lab.org](https://pyramses.sps-lab.org)
+For comprehensive PyRAMSES documentation, visit: [https://stepss.sps-lab.org/pyramses/](https://stepss.sps-lab.org/pyramses/)
 
 ### Support
 
@@ -458,7 +458,9 @@ For issues and questions, contact:
 
 ## License
 
-This project is licensed under the Academic Public License. See [LICENSE.rst](LICENSE.rst) for details.
+This project is licensed under the Apache License 2.0. See [LICENSE.rst](LICENSE.rst) for details.
+
+Note that RAMSES itself, which URAMSES links against, is **not** covered by this licence — see [NOTICE](NOTICE) for the terms applying to the RAMSES, PFC and CODEGEN components.
 
 ---
 
