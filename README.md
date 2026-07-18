@@ -1,43 +1,23 @@
-# URAMSES - User Models for PyRAMSES
+# URAMSES
 
-## About
+**User-defined device model framework for the RAMSES power system simulator**
 
-URAMSES is a project that enables the integration of custom user models into PyRAMSES (Python interface for RAMSES power system simulator) and STEPSS. This repository provides the framework and tools needed to compile and link your own Fortran models with the simulation environment.
+URAMSES lets you compile your own Fortran device models and link them against a pre-compiled RAMSES library, as part of the [STEPSS](https://stepss.sps-lab.org/) power system simulation platform. You write a model subroutine, register it in a router file, and build either a shared library (`ramses.so`/`ramses.dll`) loaded by [PyRAMSES](https://stepss.sps-lab.org/pyramses/) or a standalone executable (`dynsim`).
 
-## Table of Contents
+## Features
 
-- [Prerequisites](#prerequisites)
-- [Project Structure](#project-structure)
-- [Model Types](#model-types)
-- [Quick Start](#quick-start)
-- [Building](#building)
-  - [Linux](#building-on-linux)
-  - [Windows](#building-on-windows)
-  - [Docker](#building-with-docker)
-- [Adding Custom Models](#adding-custom-models)
-- [Using Your Models](#using-your-models)
-- [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
-- [Platform Comparison](#platform-comparison)
-- [Documentation & Support](#documentation--support)
-- [License](#license)
+- **Five model categories** — exciters (`exc_`), torque/governors (`tor_`), injectors (`inj_`), two-port devices (`twop_`), and discrete controls (`dctl_`)
+- **No RAMSES source required** — models link against the pre-compiled RAMSES library shipped in `modules_lin/` (Linux, `libramses.a`) and `modules/` (Windows, `libramses.lib`)
+- **Automatic model discovery on Linux** — the Makefile picks up any `.f90` file placed in `my_models/` via wildcard; no Makefile edits needed
+- **Three build routes** — gfortran Makefile (Linux), Visual Studio with Intel oneAPI Fortran (Windows), or Docker (no host toolchain)
+- **Dual outputs** — a shared library for PyRAMSES/STEPSS integration and a standalone `dynsim` executable
+- **Example models included** — ENTSO-E and IEEE exciter, governor, and load models with parameter files in `my_models/`
 
-## Prerequisites
+## Installation
 
-### Windows
-- **Microsoft Visual Studio** (2019 or later recommended)
-- **Intel oneAPI Fortran Compiler** (formerly Intel Fortran)
-- **PyRAMSES** (Python package) or **STEPSS** (Java package)
-
-For detailed installation instructions of the Intel oneAPI Fortran compiler, refer to the included PDF:
-[Installing the Intel oneAPI Fortran compiler.pdf](Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf)
+**Requirements:** gfortran and OpenBLAS (Linux); Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows); or Docker with Compose v2 (any platform). To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
 
 ### Linux
-- **gfortran** (GNU Fortran compiler)
-- **OpenBLAS** (optimized BLAS library)
-- **PyRAMSES** (Python package)
-
-Install dependencies on your Linux distribution:
 
 ```bash
 # Ubuntu/Debian
@@ -50,9 +30,64 @@ sudo dnf install gcc-gfortran openblas-devel
 sudo pacman -S gcc-fortran openblas
 ```
 
+### Windows
+
+- **Microsoft Visual Studio** (2019 or later recommended)
+- **Intel oneAPI Fortran Compiler** (formerly Intel Fortran)
+- **PyRAMSES** (Python package) or the **STEPSS** Java interface
+
+For detailed installation instructions of the Intel oneAPI Fortran compiler, refer to the included PDF:
+[Installing the Intel oneAPI Fortran compiler.pdf](Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf)
+
 ### Docker (any platform)
+
 - **Docker** with Docker Compose (v2)
-- No compiler or library installation required
+- No compiler or library installation required on the host
+
+## Quick Start
+
+### Linux
+
+```bash
+# Build everything (shared library + executable)
+make -f Makefile.gfortran
+
+# Run standalone simulation
+./Release_gnu_l/dynsim
+```
+
+### Windows
+
+1. Open `URAMSES.sln` in Visual Studio
+2. Select `Release|x64` configuration
+3. Build → Build Solution
+4. Run `Release_intel_w64\dynsim.exe`
+
+### Docker
+
+```bash
+docker compose build                   # One-time image build
+docker compose run --rm uramses-build  # Build ramses.so → output/ramses.so
+```
+
+### Load your models in PyRAMSES
+
+```python
+import pyramses
+
+ram = pyramses.sim('/path/to/URAMSES/Release_gnu_l')        # Linux
+# ram = pyramses.sim(r'C:\path\to\URAMSES\Release_intel_w64')  # Windows
+```
+
+## Model Types
+
+URAMSES supports several types of power system models:
+
+- **Exciters (`exc_*`)**: Generator excitation system models
+- **Injectors (`inj_*`)**: Current/voltage injection models for faults/disturbances
+- **Torque (`tor_*`)**: Mechanical torque models for generators
+- **Two-port (`twop_*`)**: Two-port network models (e.g., SVC, STATCOM)
+- **Discrete Control (`dctl_*`)**: Discrete control system models
 
 ## Project Structure
 
@@ -71,7 +106,6 @@ URAMSES/
 │   ├── exc_*.f90           # Exciter models
 │   ├── inj_*.f90           # Injector models
 │   ├── tor_*.f90           # Torque models
-│   ├── twop_*.f90          # Two-port models
 │   └── *.txt               # Model parameter files
 ├── modules/                # Pre-compiled modules (Windows/Intel Fortran)
 │   ├── *.mod               # Module interface files
@@ -82,7 +116,7 @@ URAMSES/
 ├── URAMSES.sln             # Visual Studio solution file (Windows)
 ├── dllramses.vfproj        # DLL project - ramses.dll (Windows)
 ├── exeramses.vfproj        # Executable project - dynsim.exe (Windows)
-├── MDL.vfproj              # Model library project (Windows)
+├── MDL.vfproj              # Model library project - ramsesmdl.dll (Windows)
 ├── Makefile.gfortran       # Makefile for Linux builds
 ├── docker/                 # Docker build environment
 │   └── Dockerfile          # Ubuntu 24.04 + gfortran + OpenBLAS
@@ -91,39 +125,6 @@ URAMSES/
 ├── output/                 # Docker build output (ramses.so)
 ├── Release_intel_w64/      # Compiled output (Windows)
 └── Release_gnu_l/          # Compiled output (Linux)
-```
-
-## Model Types
-
-URAMSES supports several types of power system models:
-
-- **Exciters (`exc_*`)**: Generator excitation system models
-- **Injectors (`inj_*`)**: Current/voltage injection models for faults/disturbances
-- **Torque (`tor_*`)**: Mechanical torque models for generators
-- **Two-port (`twop_*`)**: Two-port network models (e.g., SVC, STATCOM)
-- **Discrete Control (`dctl_*`)**: Discrete control system models
-
-## Quick Start
-
-### Linux
-```bash
-# Build everything (shared library + executable)
-make -f Makefile.gfortran
-
-# Run standalone simulation
-./Release_gnu_l/dynsim
-```
-
-### Windows
-1. Open `URAMSES.sln` in Visual Studio
-2. Select `Release|x64` configuration
-3. Build → Build Solution
-4. Run `Release_intel_w64\dynsim.exe`
-
-### Docker
-```bash
-docker compose build              # One-time image build
-docker compose run --rm uramses-build  # Build ramses.so → output/ramses.so
 ```
 
 ## Building
@@ -163,7 +164,7 @@ Release_gnu_l/dynsim      # Standalone executable
 
 #### Visual Studio Projects
 
-The solution contains three main projects:
+The solution contains three projects:
 
 1. **dllramses (ramses.dll)**
    - **Purpose**: Creates the main dynamic link library for PyRAMSES integration
@@ -175,6 +176,10 @@ The solution contains three main projects:
    - **Output**: `dynsim.exe` - Command-line simulation tool
    - **Usage**: Run simulations directly without Python/Java interface
    - **Features**: Includes all your custom models for standalone operation
+
+3. **MDL (ramsesmdl.dll)**
+   - **Purpose**: Auxiliary project that compiles selected model files into a separate model library
+   - **Output**: `ramsesmdl.dll`
 
 #### Step-by-Step Build Process
 
@@ -239,9 +244,9 @@ The compiled `ramses.so` is written to the `output/` directory on the host.
 
 #### 1. Create Your Model File
 
-Place your generated `.f90` model files (created by CODEGEN) into the `my_models/` directory. 
+Place your generated `.f90` model files (created by CODEGEN) into the `my_models/` directory.
 
-**Linux**: The Makefile will automatically detect and compile any `.f90` files in this directory.  
+**Linux**: The Makefile will automatically detect and compile any `.f90` files in this directory.
 **Windows**: You'll need to add the file to the Visual Studio project (see step 3).
 
 **Example**: If you create `my_models/exc_MYMODEL.f90`, it will be automatically included in Linux builds.
@@ -305,7 +310,7 @@ For Windows builds, you need to manually add the model file to the Visual Studio
 
 #### 4. Rebuild
 
-- **Linux**: 
+- **Linux**:
   ```bash
   make -f Makefile.gfortran clean all
   ```
@@ -340,10 +345,7 @@ ram = pyramses.sim(r'C:\path\to\your\URAMSES\Release_intel_w64')
 
 ### With STEPSS (Java) - Windows Only
 
-```java
-// Use ramses.dll with STEPSS Java interface
-// Your custom models will be available in STEPSS simulations
-```
+Use `ramses.dll` with the STEPSS Java interface — your custom models will be available in STEPSS simulations.
 
 ### Standalone Simulation
 
@@ -443,25 +445,24 @@ The `my_models/` directory contains several example models:
 | Model Auto-Detection | ✅ Automatic (wildcard) | ❌ Manual (VS project) | ✅ Automatic (wildcard) |
 | Host Prerequisites | gfortran, OpenBLAS | VS, Intel Fortran | Docker only |
 
-## Documentation & Support
+## Documentation
 
-### Documentation
+| Document | Description |
+|----------|-------------|
+| [URAMSES developer guide](https://stepss.sps-lab.org/developer/uramses/) | Building URAMSES and registering user models |
+| [PyRAMSES documentation](https://stepss.sps-lab.org/pyramses/) | Python interface that loads the compiled library |
+| [Installing the Intel oneAPI Fortran compiler.pdf](Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf) | Windows compiler setup (local PDF) |
 
-For comprehensive PyRAMSES documentation, visit: [https://stepss.sps-lab.org/pyramses/](https://stepss.sps-lab.org/pyramses/)
-
-### Support
-
-For issues and questions, contact:
-- **Sustainable Power Systems Lab (SPS-L)**
-- **Website:** [https://sps-lab.org](https://sps-lab.org)
-- **Email:** info@sps-lab.org
+For issues and questions, contact the Sustainable Power Systems Lab (SPS-L) at [info@sps-lab.org](mailto:info@sps-lab.org).
 
 ## License
 
-This project is licensed under the Apache License 2.0. See [LICENSE.rst](LICENSE.rst) for details.
+URAMSES is distributed under the **Apache License 2.0** — see [LICENSE.rst](LICENSE.rst). Copyright © Petros Aristidou.
 
-Note that RAMSES itself, which URAMSES links against, is **not** covered by this licence — see [NOTICE](NOTICE) for the terms applying to the RAMSES, PFC and CODEGEN components.
+Note that RAMSES itself, which URAMSES links against (the pre-compiled `libramses` in `modules/` and `modules_lin/`), is **not** covered by this licence — see [NOTICE](NOTICE) for the terms applying to the RAMSES, PFC and CODEGEN components.
 
----
+## Authors
 
-**Last Updated:** April 2026
+Developed and maintained by the [Sustainable Power Systems Laboratory (SPS-L)](https://sps-lab.org/) at the Cyprus University of Technology, under the direction of Dr. Petros Aristidou.
+
+RAMSES, the simulator URAMSES links against, builds on the original work of Dr. Thierry Van Cutsem (University of Liège) — see [NOTICE](NOTICE).
