@@ -15,7 +15,12 @@ URAMSES lets you compile your own Fortran device models and link them against a 
 
 ## Installation
 
-**Requirements:** gfortran and OpenBLAS (Linux); Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows); or Docker with Compose v2 (any platform). To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
+**Requirements:** 
+ - **Linux** : gfortran and OpenBLAS.
+ - **Windows** : Visual Studio 2019+ and the Intel oneAPI Fortran compiler Classic `ifort`
+ - **Docker** : Docker with Compose v2 (any platform). 
+ 
+ To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
 
 ### Linux
 
@@ -38,6 +43,15 @@ sudo pacman -S gcc-fortran openblas
 
 For detailed installation instructions of the Intel oneAPI Fortran compiler, refer to the included PDF:
 [Installing the Intel oneAPI Fortran compiler.pdf](Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf)
+
+[Comments from Bastien Ewbank : Pdf has been updated to fix the fortran compiler
+installation. Indeed latest version of URAMSES seems to require at least 'ifort'
+ version 2021.12.0 but Thierry's instruction are either deprecated, or redirect
+ towards 'ifort' 2021.9.0, or toward the latest intel Fortran compiler named 
+ 'ifx' which is also not suitable for URAMSES. In addition, a Google Drive folder 
+ has been created to host the necessary installation files provided by Intel (.
+ exe), as Intel appears to be gradually restricting access to these files over 
+ time.]: #  
 
 ### Docker (any platform)
 
