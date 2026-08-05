@@ -307,8 +307,14 @@ The solution contains three projects:
    - **Features**: Includes all your custom models for standalone operation
 
 3. **MDL (ramsesmdl.dll)**
-   - **Purpose**: Auxiliary project that compiles selected model files into a separate model library
+   - **Purpose**: Auxiliary project for building a subset of models into a
+     separate library. Its source list is currently **empty** — the models it
+     used to carry are ones the RAMSES library already exports, so they were
+     removed to avoid duplicate-symbol link errors. Building it as shipped
+     produces an empty `ramsesmdl.dll`
    - **Output**: `ramsesmdl.dll`
+   - **Usage**: Not needed for either PyRAMSES or standalone use; add your own
+     models to `dllramses` instead
 
 #### Step-by-Step Build Process
 
@@ -332,9 +338,9 @@ own models needs a gfortran matching the kit for your platform.
 Each kit records exactly what built it:
 
 ```sh
-cat modules_l/BUILDINFO.txt          # Linux
-cat modules_m/BUILDINFO.txt          # macOS arm64
-cat modules_wg/BUILDINFO.txt # Windows MinGW
+cat modules_l/BUILDINFO.txt   # Linux
+cat modules_m/BUILDINFO.txt   # macOS arm64
+cat modules_wg/BUILDINFO.txt  # Windows MinGW
 ```
 
 These files appear once the kit-sync CI has refreshed a kit at least once;
@@ -469,7 +475,13 @@ import pyramses
 # Linux
 ram = pyramses.sim('/path/to/your/URAMSES/Release_l')
 
-# Windows
+# macOS (Apple Silicon)
+ram = pyramses.sim('/path/to/your/URAMSES/Release_m')
+
+# Windows (MinGW)
+ram = pyramses.sim(r'C:\path\to\your\URAMSES\Release_wg')
+
+# Windows (Intel)
 ram = pyramses.sim(r'C:\path\to\your\URAMSES\Release_wi')
 
 # Your models are now available for use in simulations
@@ -486,7 +498,15 @@ Use `ramses.dll` with the STEPSS Java interface. Your custom models will be avai
 cd Release_l
 ./dynsim
 
-# Windows
+# macOS (Apple Silicon)
+cd Release_m
+./dynsim
+
+# Windows (MinGW)
+cd Release_wg
+./dynsim.exe
+
+# Windows (Intel)
 cd Release_wi
 dynsim.exe
 ```
@@ -497,7 +517,7 @@ The `custom_models/` directory contains example models:
 - `exc_ENTSOE_lim.f90`: ENTSO-E exciter model with limiters
 - `inj_AIR_COND1_mod.f90`: Air conditioning load model
 
-Models already provided by the RAMSES library in `modules_l/` must not be
+Models already provided by the pre-compiled RAMSES library must not be
 duplicated here: defining a subroutine that the library also exports produces
 a duplicate-symbol link error. Register those by name in the `src/usr_*_models.f90`
 routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
@@ -586,7 +606,9 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 - Check compiler output for compilation errors
 - Verify model subroutine names match exactly in association files
 - Test with simple models first before complex implementations
-- On Linux, use `ldd Release_l/ramses.so` to check library dependencies
+- Inspect the shared library's dependencies: `ldd Release_l/ramses.so` on
+  Linux, `otool -L Release_m/ramses.so` on macOS, `ldd Release_wg/ramses.dll`
+  from the MSYS2 MinGW 64-bit shell on Windows
 
 ## Platform Comparison
 

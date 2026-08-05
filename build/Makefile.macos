@@ -70,7 +70,15 @@ LDFLAGS_EXE = -fopenmp
 ifeq ($(BLAS),accelerate)
     BLAS_LIBS = -framework Accelerate
 else
-    OPENBLAS_PREFIX := $(shell brew --prefix openblas 2>/dev/null)
+    # `brew --prefix openblas` prints the opt path and exits 0 even when the
+    # formula is not installed -- that is why `--installed` exists -- so it
+    # cannot serve as a presence check on its own: check-deps would report
+    # "Found" and the failure would surface later as a link error. Fall back
+    # to the plain query for a Homebrew too old to know the flag, and in both
+    # cases emit a prefix only once its lib directory really exists.
+    OPENBLAS_PREFIX := $(shell p="$$(brew --prefix --installed openblas 2>/dev/null \
+                                     || brew --prefix openblas 2>/dev/null)"; \
+                               [ -n "$$p" ] && [ -d "$$p/lib" ] && printf '%s' "$$p")
     ifneq ($(OPENBLAS_PREFIX),)
         BLAS_LIBS = -L$(OPENBLAS_PREFIX)/lib -lopenblas
     else
