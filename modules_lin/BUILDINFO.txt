@@ -1,0 +1,13 @@
+kit_dir          modules_lin
+ramses_tag       v3.51-citest
+ramses_commit    c0b92bb4db589b114e3f497e3a72c4a9c9febfa5
+built_utc        2026-08-05T19:49:02Z
+runner_image     ubuntu-22.04
+compiler         GNU Fortran (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+target           x86_64-linux-gnu
+mod_abi_version  15
+fflags           -O2 -cpp -fopenmp -fimplicit-none -ffree-line-length-none -ffree-form -W -g -fPIC -DDLL
+ldflags          -fopenmp
+blas             OpenBLAS 0.3.20+ds-1
+runtime_floor    ldd (Ubuntu GLIBC 2.35-0ubuntu3.13) 2.35
+consume_with     Makefile.linux
