@@ -1,7 +1,7 @@
 #
 # Makefile for RAMSES using gfortran (Linux only)
 # For macOS use build/Makefile.macos; for Windows use build/Makefile.windows (gfortran)
-# or Visual Studio with msvs/URAMSES.sln (Intel oneAPI).
+# or Visual Studio with build/msvs/URAMSES.sln (Intel oneAPI).
 #
 # Author: Sustainable Power Systems Lab (SPS-L)
 # Web: https://sps-lab.org
@@ -22,9 +22,9 @@ MKDIR = mkdir -p
 
 # Directories
 SRC_DIR = src
-MY_MODELS_DIR = my_models
-MOD_DIR = modules_lin
-OUT_DIR = Release_gnu_l
+CUSTOM_MODELS_DIR = custom_models
+MOD_DIR = modules_l
+OUT_DIR = Release_l
 OBJ_DIR = $(OUT_DIR)/obj
 
 # Output files
@@ -60,11 +60,11 @@ LIBS = -L$(MOD_DIR) -lramses -lopenblas
 # Source files from src/ (excluding main.f90 which is for executable only)
 SRC_FILES = $(filter-out $(SRC_DIR)/main.f90, $(wildcard $(SRC_DIR)/*.f90))
 
-# Source files from my_models/ (only .f90 files)
-MY_MODEL_FILES = $(wildcard $(MY_MODELS_DIR)/*.f90)
+# Source files from custom_models/ (only .f90 files)
+CUSTOM_MODEL_FILES = $(wildcard $(CUSTOM_MODELS_DIR)/*.f90)
 
 # All source files for shared library
-SRCS = $(SRC_FILES) $(MY_MODEL_FILES)
+SRCS = $(SRC_FILES) $(CUSTOM_MODEL_FILES)
 
 # Object files for shared library
 OBJS = $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.f90=.o)))
@@ -81,7 +81,7 @@ OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 UNAME_S := $(shell uname -s)
 
 ifneq ($(UNAME_S),Linux)
-    $(error This Makefile is for Linux only. For macOS use build/Makefile.macos; for Windows use build/Makefile.windows or Visual Studio with msvs/URAMSES.sln)
+    $(error This Makefile is for Linux only. For macOS use build/Makefile.macos; for Windows use build/Makefile.windows or Visual Studio with build/msvs/URAMSES.sln)
 endif
 
 # ============================================================================
@@ -119,7 +119,7 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
 	@echo "For macOS use build/Makefile.macos; for Windows use build/Makefile.windows"
-	@echo "(gfortran) or Visual Studio with msvs/URAMSES.sln (Intel oneAPI)."
+	@echo "(gfortran) or Visual Studio with build/msvs/URAMSES.sln (Intel oneAPI)."
 
 # Check dependencies
 check-deps:
@@ -190,8 +190,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.f90 | $(OBJ_DIR)
 	@echo "Compiling $<..."
 	$(FC) $(FFLAGS) -c $< -o $@ -J$(OBJ_DIR)
 
-# Compile source files from my_models/
-$(OBJ_DIR)/%.o: $(MY_MODELS_DIR)/%.f90 | $(OBJ_DIR)
+# Compile source files from custom_models/
+$(OBJ_DIR)/%.o: $(CUSTOM_MODELS_DIR)/%.f90 | $(OBJ_DIR)
 	@echo "Compiling $<..."
 	$(FC) $(FFLAGS) -c $< -o $@ -J$(OBJ_DIR)
 

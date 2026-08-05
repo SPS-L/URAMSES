@@ -74,7 +74,7 @@ done
 
 # kit_dir names which platform directory this kit is for. RAMSES writes it,
 # and it is only ever checked against the caller's <mod-dir> here -- nothing
-# else stops the macOS zip from being installed into modules_lin.
+# else stops the macOS zip from being installed into modules_l.
 ZIP_KIT_DIR="$(sed -n 's/^kit_dir[[:space:]]\{1,\}//p' "$STAGE/BUILDINFO.txt" | head -n1)"
 TARGET_BASENAME="$(basename "$MOD_DIR")"
 if [ "$ZIP_KIT_DIR" != "$TARGET_BASENAME" ]; then

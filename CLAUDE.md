@@ -16,49 +16,56 @@ make -f build/Makefile.linux clean      # Remove build artifacts
 make -f build/Makefile.linux check-deps # Verify dependencies (gfortran, OpenBLAS, libramses.a)
 ```
 
-Output goes to `Release_gnu_l/`.
+Output goes to `Release_l/`.
 
 ## Build Commands (macOS and Windows/MinGW)
 
-`build/Makefile.macos` and `build/Makefile.windows` mirror `build/Makefile.linux` — same targets
-(`all`/`dll`/`exe`/`clean`/`check-deps`/`help`), same wildcard model discovery —
-and differ only in the module directory, output directory, and library naming:
+`build/Makefile.macos` and `build/Makefile.windows` mirror
+`build/Makefile.linux`, with the same targets
+(`all`/`dll`/`exe`/`clean`/`check-deps`/`help`) and the same wildcard model
+discovery. They differ only in the module directory, output directory, and
+library naming.
+
+Every platform carries one suffix throughout: `l` (Linux), `m` (macOS), `wg`
+(Windows/MinGW gfortran) and `wi` (Windows/Intel). A kit directory and the
+output directory it builds into always share it.
 
 | Route | Makefile | Modules | Output dir | Shared lib |
 |---|---|---|---|---|
-| Linux | `build/Makefile.linux` | `modules_lin/` (`libramses.a`) | `Release_gnu_l/` | `ramses.so` |
-| macOS arm64 | `build/Makefile.macos` | `modules_mac/` (`libramses.a`) | `Release_gnu_m/` | `ramses.so` |
-| Windows MinGW | `build/Makefile.windows` | `modules_win_gfortran/` (`libramses.lib`) | `Release_gnu_w/` | `ramses.dll` |
-| Windows Intel | `msvs/URAMSES.sln` | `modules/` (`libramses.lib`) | `Release_intel_w64/` | `ramses.dll` |
+| Linux | `build/Makefile.linux` | `modules_l/` (`libramses.a`) | `Release_l/` | `ramses.so` |
+| macOS arm64 | `build/Makefile.macos` | `modules_m/` (`libramses.a`) | `Release_m/` | `ramses.so` |
+| Windows MinGW | `build/Makefile.windows` | `modules_wg/` (`libramses.lib`) | `Release_wg/` | `ramses.dll` |
+| Windows Intel | `build/msvs/URAMSES.sln` | `modules_wi/` (`libramses.lib`) | `Release_wi/` | `ramses.dll` |
 
 Constraints worth knowing before editing these files:
 
 - The Makefiles live in `build/` but are **always invoked from the repo root**
   (`make -f build/Makefile.linux`). `-f` does not change make's working
-  directory, so every path inside them stays repo-root-relative — do not add
+  directory, so every path inside them stays repo-root-relative. Do not add
   `../` prefixes, and do not `cd build` to run them.
-- The `.vfproj` files live in `msvs/` and their paths *are* relative to their
-  own directory, hence the `..\src\`, `..\modules`, `..\Release_intel_w64`
-  prefixes. The two routes resolve paths differently; keep them straight.
-- macOS uses `ramses.so`, **not** `ramses.dylib` — PyRAMSES separates platforms
+- The `.vfproj` files live in `build/msvs/` and their paths *are* relative to
+  their own directory, two levels below the root, hence the `..\..\src\`,
+  `..\..\custom_models\`, `..\..\modules_wi` and `..\..\Release_wi` prefixes.
+  The two routes resolve paths differently; keep them straight.
+- macOS uses `ramses.so`, **not** `ramses.dylib`. PyRAMSES separates platforms
   by the `libs/lin`, `libs/mac`, `libs/win` folder, not by filename.
-- `modules_mac/` is arm64; macOS builds require Apple Silicon.
+- `modules_m/` is arm64; macOS builds require Apple Silicon.
 - Each kit's GFORTRAN module ABI version is recorded in its
   `modules_<plat>/BUILDINFO.txt` (see the README's "Which compiler do I need?"
-  section) rather than hardcoded here — it changes whenever RAMSES bumps a
-  runner's compiler. Each `check-deps` compares the local compiler against the
-  kit and fails early on a mismatch.
+  section) rather than hardcoded here, because it changes whenever RAMSES bumps
+  a runner's compiler. Each `check-deps` compares the local compiler against
+  the kit and fails early on a mismatch.
 - The Windows gfortran kit ships `libramses.lib`, which MinGW's linker does not
   probe for `-lramses`, so `build/Makefile.windows` passes it by explicit path.
 - `FC` is assigned with `=` not `?=` in all three: make predefines `FC` as `f77`,
   which `?=` would leave in place. A command-line `FC=` still overrides.
 
 Kits come from the matching `stepss-ramses` release, e.g.
-`uramses-modules_{lin,mac,win_gfortran}-v3.51.zip` for RAMSES v3.51.
+`uramses-modules_{l,m,wg}-v3.51.zip` for RAMSES v3.51.
 
 ## Module kits are CI-managed
 
-`modules_lin/`, `modules_mac/` and `modules_win_gfortran/` are written by
+`modules_l/`, `modules_m/` and `modules_wg/` are written by
 `.github/workflows/sync-ramses-release.yml` and must not be hand-edited. When
 stepss-ramses publishes a release it dispatches here; the workflow refreshes
 all three kits from that release's `uramses-modules_*` bundles, builds every
@@ -69,7 +76,7 @@ Every kit carries a `BUILDINFO.txt` recording the compiler, `.mod` ABI
 version, flags, BLAS and runtime floor behind it. `tools/check_kit.sh` reads it
 during `check-deps` and refuses a compiler that cannot read the kit.
 
-`modules/` (Intel, consumed by `msvs/URAMSES.sln`) is outside all of this and is
+`modules_wi/` (Intel, consumed by `build/msvs/URAMSES.sln`) is outside all of this and is
 still refreshed by hand.
 
 The runner images in the sync workflow deliberately mirror those in
@@ -90,32 +97,33 @@ bash tools/test_render_release_notes.sh
 
 **Build dependency chain:**
 ```
-main.f90 → c_interface.f90 → usr_*_models.f90 → my_models/*.f90 + FUNCTIONS_IN_MODELS.f90
+main.f90 → c_interface.f90 → usr_*_models.f90 → custom_models/*.f90 + FUNCTIONS_IN_MODELS.f90
                                                         ↓
                                                  libramses.a (pre-compiled)
 ```
 
 **Key directories:**
-- `src/` — Framework code (C interface, model routers, utility functions, main entry point)
-- `my_models/` — User model implementations (auto-discovered by every Makefile build)
-- `modules_lin/` — Pre-compiled RAMSES library and `.mod` files (Linux/gfortran)
-- `modules_mac/` — Pre-compiled RAMSES library and `.mod` files (macOS arm64/gfortran)
-- `modules_win_gfortran/` — Pre-compiled RAMSES library and `.mod` files (Windows/MinGW)
-- `modules/` — Pre-compiled RAMSES library and `.mod` files (Windows/Intel)
+- `src/`: framework code (C interface, model routers, utility functions, main entry point)
+- `custom_models/`: user model implementations (auto-discovered by every Makefile build)
+- `build/`: the three Makefiles, plus `build/msvs/` for the Visual Studio route
+- `modules_l/`: pre-compiled RAMSES library and `.mod` files (Linux/gfortran)
+- `modules_m/`: pre-compiled RAMSES library and `.mod` files (macOS arm64/gfortran)
+- `modules_wg/`: pre-compiled RAMSES library and `.mod` files (Windows/MinGW)
+- `modules_wi/`: pre-compiled RAMSES library and `.mod` files (Windows/Intel)
 
 **Model router pattern** (`src/usr_*_models.f90`): Each file contains an `assoc_*_ptr` subroutine that maps string model names to Fortran subroutine pointers via `select case`. Five model categories exist: `exc` (exciters), `inj` (injectors), `tor` (torque/governors), `twop` (two-port devices), `dctl` (discrete control).
 
-**Model subroutine pattern**: Each model in `my_models/` is a single subroutine using mode-based dispatch (`select case` on `mode`): `define_var_and_par`, `define_obs`, `diffstate`, `algstate`, `update_state`. Models use `FUNCTIONS_IN_MODELS` for shared utilities (`ppower`, `qpower`, `vrectif`, `vcomp`, etc.).
+**Model subroutine pattern**: Each model in `custom_models/` is a single subroutine using mode-based dispatch (`select case` on `mode`): `define_var_and_par`, `define_obs`, `diffstate`, `algstate`, `update_state`. Models use `FUNCTIONS_IN_MODELS` for shared utilities (`ppower`, `qpower`, `vrectif`, `vcomp`, etc.).
 
 ## Adding a New Model
 
-1. Create `my_models/<type>_<NAME>.f90` following the naming convention (`exc_`, `inj_`, `tor_`, `twop_`, `dctl_`)
+1. Create `custom_models/<type>_<NAME>.f90` following the naming convention (`exc_`, `inj_`, `tor_`, `twop_`, `dctl_`)
 2. Register in the corresponding `src/usr_<type>_models.f90` by adding a `case` to the `select case` block
 3. Rebuild with the Makefile for your platform, e.g. `make -f build/Makefile.linux clean all`
 
-All three Makefiles auto-discover `.f90` files in `my_models/` via wildcard. Only the Intel Visual Studio route requires files to be added to the project by hand.
+All three Makefiles auto-discover `.f90` files in `custom_models/` via wildcard. Only the Intel Visual Studio route requires files to be added to the project by hand.
 
-Do not copy a model that the linked RAMSES library already exports — defining a subroutine the library also defines produces a duplicate-symbol link error. Register those by name in the routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
+Do not copy a model that the linked RAMSES library already exports: defining a subroutine the library also defines produces a duplicate-symbol link error. Register those by name in the routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 
 ## Fortran Conventions
 

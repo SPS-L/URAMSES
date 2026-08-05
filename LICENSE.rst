@@ -12,18 +12,18 @@ Covered by the Apache License 2.0
 Copyright 2026 Petros Aristidou. The Apache License 2.0 covers the work
 authored in this repository:
 
-  - ``src/`` — framework sources (C interface, model routers, shared functions)
-  - ``my_models/`` — the example user models shipped here
-  - ``build/``, ``msvs/`` — build files for every supported route
-  - ``tools/``, ``.github/`` — helper scripts and CI
+  - ``src/``: framework sources (C interface, model routers, shared functions)
+  - ``custom_models/``: the example user models shipped here
+  - ``build/``: build files for every supported route, including ``build/msvs/``
+  - ``tools/``, ``.github/``: helper scripts and CI
   - ``README.md``, ``CLAUDE.md`` and the other documentation in this repository
 
 NOT covered by the Apache License 2.0
 -------------------------------------
 
 The pre-compiled RAMSES library and its Fortran ``.mod`` interface files,
-shipped in ``modules/``, ``modules_lin/``, ``modules_mac/`` and
-``modules_win_gfortran/``, are **not** Apache-licensed and are **not**
+shipped in ``modules_l/``, ``modules_m/``, ``modules_wg/`` and
+``modules_wi/``, are **not** Apache-licensed and are **not**
 open source. Their source code is not included in this repository.
 
 RAMSES, the solver of the differential-algebraic equations that URAMSES links
@@ -35,9 +35,9 @@ distributed under separate proprietary terms:
     other educational institutions, research at non-profit research
     institutions, and personal non-profit purposes.
 
-  - For commercial use of RAMSES — including but not restricted to consulting
+  - For commercial use of RAMSES (including but not restricted to consulting
     activities, design of commercial hardware or software products, or
-    participation by a commercial entity in research projects — you must
+    participation by a commercial entity in research projects), you must
     contact the Authors for an appropriate licence.
 
   - The free-of-charge version of RAMSES is limited to power system models of

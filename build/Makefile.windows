@@ -1,7 +1,7 @@
 #
 # Makefile for RAMSES using gfortran (Windows, MinGW-w64 via MSYS2)
 # This is the free-toolchain Windows route. The Intel oneAPI route is
-# unaffected and still uses Visual Studio with msvs/URAMSES.sln.
+# unaffected and still uses Visual Studio with build/msvs/URAMSES.sln.
 # For Linux use build/Makefile.linux; for macOS use build/Makefile.macos.
 #
 # Run this from an "MSYS2 MinGW 64-bit" shell, not the plain MSYS shell:
@@ -29,9 +29,9 @@ MKDIR = mkdir -p
 
 # Directories
 SRC_DIR = src
-MY_MODELS_DIR = my_models
-MOD_DIR = modules_win_gfortran
-OUT_DIR = Release_gnu_w
+CUSTOM_MODELS_DIR = custom_models
+MOD_DIR = modules_wg
+OUT_DIR = Release_wg
 OBJ_DIR = $(OUT_DIR)/obj
 
 # Output files
@@ -73,11 +73,11 @@ LIBS = $(RAMSES_LIB) -lopenblas
 # Source files from src/ (excluding main.f90 which is for executable only)
 SRC_FILES = $(filter-out $(SRC_DIR)/main.f90, $(wildcard $(SRC_DIR)/*.f90))
 
-# Source files from my_models/ (only .f90 files)
-MY_MODEL_FILES = $(wildcard $(MY_MODELS_DIR)/*.f90)
+# Source files from custom_models/ (only .f90 files)
+CUSTOM_MODEL_FILES = $(wildcard $(CUSTOM_MODELS_DIR)/*.f90)
 
 # All source files for shared library
-SRCS = $(SRC_FILES) $(MY_MODEL_FILES)
+SRCS = $(SRC_FILES) $(CUSTOM_MODEL_FILES)
 
 # Object files for shared library
 OBJS = $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.f90=.o)))
@@ -97,7 +97,7 @@ UNAME_S := $(shell uname -s 2>/dev/null)
 
 ifneq ($(OS),Windows_NT)
     ifeq (,$(findstring MINGW,$(UNAME_S)))
-        $(error This Makefile is for Windows with MinGW-w64/MSYS2. For Linux use build/Makefile.linux; for macOS use build/Makefile.macos; for Intel oneAPI use Visual Studio with msvs/URAMSES.sln)
+        $(error This Makefile is for Windows with MinGW-w64/MSYS2. For Linux use build/Makefile.linux; for macOS use build/Makefile.macos; for Intel oneAPI use Visual Studio with build/msvs/URAMSES.sln)
     endif
 endif
 
@@ -142,7 +142,7 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
 	@echo "Run from the MSYS2 MinGW 64-bit shell. For the Intel oneAPI route,"
-	@echo "use Visual Studio with msvs/URAMSES.sln instead."
+	@echo "use Visual Studio with build/msvs/URAMSES.sln instead."
 
 # Check dependencies
 check-deps:
@@ -218,8 +218,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.f90 | $(OBJ_DIR)
 	@echo "Compiling $<..."
 	$(FC) $(FFLAGS) -c $< -o $@ -J$(OBJ_DIR)
 
-# Compile source files from my_models/
-$(OBJ_DIR)/%.o: $(MY_MODELS_DIR)/%.f90 | $(OBJ_DIR)
+# Compile source files from custom_models/
+$(OBJ_DIR)/%.o: $(CUSTOM_MODELS_DIR)/%.f90 | $(OBJ_DIR)
 	@echo "Compiling $<..."
 	$(FC) $(FFLAGS) -c $< -o $@ -J$(OBJ_DIR)
 

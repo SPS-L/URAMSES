@@ -35,11 +35,11 @@ consume_with     $7
 EOF
 }
 
-mk "$TMPD/lin.txt" modules_lin "GNU Fortran (Ubuntu) 11.4.0" 15 \
+mk "$TMPD/lin.txt" modules_l "GNU Fortran (Ubuntu) 11.4.0" 15 \
    x86_64-pc-linux-gnu "glibc 2.35" Makefile.linux
-mk "$TMPD/mac.txt" modules_mac "GNU Fortran (Homebrew) 15.1.0" 16 \
+mk "$TMPD/mac.txt" modules_m "GNU Fortran (Homebrew) 15.1.0" 16 \
    aarch64-apple-darwin24 "macOS 15 arm64" Makefile.macos
-mk "$TMPD/win.txt" modules_win_gfortran "GNU Fortran (MinGW) 14.2.0" 16 \
+mk "$TMPD/win.txt" modules_wg "GNU Fortran (MinGW) 14.2.0" 16 \
    x86_64-w64-mingw32 "static" Makefile.windows
 
 cat > "$TMPD/body.md" <<'EOF'
@@ -71,7 +71,7 @@ echo "$OUT" | grep -q "## Toolchain and kit provenance" && ok "has the provenanc
 for m in build/Makefile.linux build/Makefile.macos build/Makefile.windows; do
     echo "$OUT" | grep -q "$m" && ok "row for $m" || fail "no row for $m"
 done
-for d in modules_lin modules_mac modules_win_gfortran; do
+for d in modules_l modules_m modules_wg; do
     echo "$OUT" | grep -q "$d" && ok "names $d" || fail "does not name $d"
 done
 echo "$OUT" | grep -q "11.4.0" && ok "linux compiler shown" || fail "linux compiler missing"
@@ -88,9 +88,9 @@ echo "$OUT" | grep -q "14.2.0" && ok "windows compiler shown" || fail "windows c
 # The fixtures above carry a bare `Makefile.<plat>` in consume_with, matching
 # what stepss-ramses CI stamps into a kit; the expected rows carry the
 # `build/` prefix row() adds, so these also pin that normalisation.
-LIN_ROW='| `build/Makefile.linux` | `modules_lin` | GNU Fortran (Ubuntu) 11.4.0 | 15 | `x86_64-pc-linux-gnu` | glibc 2.35 |'
-MAC_ROW='| `build/Makefile.macos` | `modules_mac` | GNU Fortran (Homebrew) 15.1.0 | 16 | `aarch64-apple-darwin24` | macOS 15 arm64 |'
-WIN_ROW='| `build/Makefile.windows` | `modules_win_gfortran` | GNU Fortran (MinGW) 14.2.0 | 16 | `x86_64-w64-mingw32` | static |'
+LIN_ROW='| `build/Makefile.linux` | `modules_l` | GNU Fortran (Ubuntu) 11.4.0 | 15 | `x86_64-pc-linux-gnu` | glibc 2.35 |'
+MAC_ROW='| `build/Makefile.macos` | `modules_m` | GNU Fortran (Homebrew) 15.1.0 | 16 | `aarch64-apple-darwin24` | macOS 15 arm64 |'
+WIN_ROW='| `build/Makefile.windows` | `modules_wg` | GNU Fortran (MinGW) 14.2.0 | 16 | `x86_64-w64-mingw32` | static |'
 
 echo "$OUT" | grep -qF "$LIN_ROW" && ok "linux row matches column layout exactly" \
     || fail "linux row does not match expected column layout: '$LIN_ROW'"
@@ -103,7 +103,7 @@ echo "$OUT" | grep -q 'build/build/' \
     && fail "consume_with was prefixed twice" || ok "no double build/ prefix"
 
 # an already-qualified consume_with must pass through untouched
-mk "$TMPD/lin_q.txt" modules_lin "GNU Fortran (Ubuntu) 11.4.0" 15 \
+mk "$TMPD/lin_q.txt" modules_l "GNU Fortran (Ubuntu) 11.4.0" 15 \
    x86_64-pc-linux-gnu "glibc 2.35" build/Makefile.linux
 QOUT="$("$SCRIPT" "$TMPD/body.md" "$TMPD/lin_q.txt" "$TMPD/mac.txt" "$TMPD/win.txt")"
 echo "$QOUT" | grep -qF "$LIN_ROW" && ok "qualified consume_with passes through" \

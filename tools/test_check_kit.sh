@@ -26,7 +26,7 @@ LOCAL_ABI="$(gzip -dc "$TMPD/good"/probe_mod.mod | head -c 256 \
 echo "local gfortran emits .mod ABI $LOCAL_ABI"
 
 cat > "$TMPD/good/BUILDINFO.txt" <<EOF
-kit_dir          modules_lin
+kit_dir          modules_l
 ramses_tag       v9.99
 ramses_commit    deadbeef
 built_utc        2026-09-01T10:12:44Z

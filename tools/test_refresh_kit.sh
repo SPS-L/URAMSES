@@ -20,7 +20,7 @@ cd "$TMPD" || exit 1
 
 buildinfo() {   # buildinfo <tag> > file
     cat <<EOF
-kit_dir          modules_lin
+kit_dir          modules_l
 ramses_tag       $1
 ramses_commit    deadbeef
 built_utc        2026-09-01T10:12:44Z
@@ -86,7 +86,7 @@ buildinfo v9.99 | grep -v '^mod_abi_version' > src_missingkey/BUILDINFO.txt
 mkdir -p src_wrongkitdir
 printf 'archive' > src_wrongkitdir/libramses.a
 fakemod 15 alpha > src_wrongkitdir/alpha.mod
-buildinfo v9.99 | sed 's/^kit_dir .*/kit_dir          modules_mac/' > src_wrongkitdir/BUILDINFO.txt
+buildinfo v9.99 | sed 's/^kit_dir .*/kit_dir          modules_m/' > src_wrongkitdir/BUILDINFO.txt
 ( cd src_wrongkitdir && zip -q -j "$TMPD/wrongkitdir.zip" . -r )
 
 # --- zip missing the library --------------------------------------------
@@ -103,11 +103,11 @@ buildinfo v9.99 > src_nomod/BUILDINFO.txt
 
 # A target kit dir holding a stale module the new kit no longer ships.
 fresh_target() {
-    rm -rf "$TMPD/modules_lin"
-    mkdir -p "$TMPD/modules_lin"
-    printf 'old' > "$TMPD/modules_lin/libramses.a"
-    fakemod 15 alpha             > "$TMPD/modules_lin/alpha.mod"
-    fakemod 15 sparse_matrix_mod > "$TMPD/modules_lin/sparse_matrix_mod.mod"
+    rm -rf "$TMPD/modules_l"
+    mkdir -p "$TMPD/modules_l"
+    printf 'old' > "$TMPD/modules_l/libramses.a"
+    fakemod 15 alpha             > "$TMPD/modules_l/alpha.mod"
+    fakemod 15 sparse_matrix_mod > "$TMPD/modules_l/sparse_matrix_mod.mod"
 }
 
 # --- usage ---------------------------------------------------------------
@@ -116,40 +116,40 @@ fresh_target() {
 
 # --- happy path ----------------------------------------------------------
 fresh_target
-OUT="$("$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+OUT="$("$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_l" libramses.a v9.99 2>&1)"; RC=$?
 echo "$OUT"
 [ $RC -eq 0 ] && ok "valid kit exits 0" || fail "valid kit exited $RC"
-[ -f "$TMPD/modules_lin/libramses.a" ]  && ok "library present"      || fail "library missing"
-[ -f "$TMPD/modules_lin/beta.mod" ]     && ok "new module unpacked"  || fail "beta.mod missing"
-[ -f "$TMPD/modules_lin/BUILDINFO.txt" ] && ok "BUILDINFO unpacked"  || fail "BUILDINFO missing"
-[ "$(cat "$TMPD/modules_lin/libramses.a")" = "archive" ] \
+[ -f "$TMPD/modules_l/libramses.a" ]  && ok "library present"      || fail "library missing"
+[ -f "$TMPD/modules_l/beta.mod" ]     && ok "new module unpacked"  || fail "beta.mod missing"
+[ -f "$TMPD/modules_l/BUILDINFO.txt" ] && ok "BUILDINFO unpacked"  || fail "BUILDINFO missing"
+[ "$(cat "$TMPD/modules_l/libramses.a")" = "archive" ] \
     && ok "library overwritten with new content" || fail "library not replaced"
 
 # The reason this script exists rather than unzip-over-the-top:
-[ ! -f "$TMPD/modules_lin/sparse_matrix_mod.mod" ] \
+[ ! -f "$TMPD/modules_l/sparse_matrix_mod.mod" ] \
     && ok "stale module evicted" || fail "stale sparse_matrix_mod.mod survived"
 
 # --- dotfiles evicted alongside everything else ---------------------------
 # rm -rf DIR/* alone skips names beginning with "." -- a stray .DS_Store or
 # editor swap file would then survive every future refresh forever.
 fresh_target
-mkdir -p "$TMPD/modules_lin/.stale_hidden_dir"
-printf 'ds_store' > "$TMPD/modules_lin/.stale_hidden"
-fakemod 15 leftover > "$TMPD/modules_lin/.stale_hidden_dir/leftover.mod"
-"$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+mkdir -p "$TMPD/modules_l/.stale_hidden_dir"
+printf 'ds_store' > "$TMPD/modules_l/.stale_hidden"
+fakemod 15 leftover > "$TMPD/modules_l/.stale_hidden_dir/leftover.mod"
+"$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_l" libramses.a v9.99 >/dev/null 2>&1
 [ $? -eq 0 ] && ok "refresh with planted dotfiles exits 0" \
     || fail "refresh with planted dotfiles should exit 0"
-[ ! -e "$TMPD/modules_lin/.stale_hidden" ] \
+[ ! -e "$TMPD/modules_l/.stale_hidden" ] \
     && ok "hidden file evicted" || fail "hidden file .stale_hidden survived"
-[ ! -e "$TMPD/modules_lin/.stale_hidden_dir" ] \
+[ ! -e "$TMPD/modules_l/.stale_hidden_dir" ] \
     && ok "hidden directory evicted" || fail "hidden directory .stale_hidden_dir survived"
 
 # --- tag mismatch --------------------------------------------------------
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
-"$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_lin" libramses.a v1.00 >/dev/null 2>&1
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
+"$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_l" libramses.a v1.00 >/dev/null 2>&1
 [ $? -eq 1 ] && ok "tag mismatch exits 1" || fail "tag mismatch should exit 1"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "tag mismatch left the kit untouched" \
     || fail "kit was modified despite tag mismatch: '$BEFORE' -> '$AFTER'"
 
@@ -157,74 +157,74 @@ AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
 # The release table publishes mod_abi_version straight from BUILDINFO, so a
 # kit whose metadata contradicts its own .mod files must never be installed.
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
-OUT="$("$SCRIPT" "$TMPD/skew.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
+OUT="$("$SCRIPT" "$TMPD/skew.zip" "$TMPD/modules_l" libramses.a v9.99 2>&1)"; RC=$?
 echo "$OUT"
 [ $RC -eq 1 ] && ok "ABI skew exits 1" || fail "ABI skew should exit 1"
 echo "$OUT" | grep -q "claims .mod ABI 15" && ok "names the claimed ABI" || fail "claimed ABI missing"
 echo "$OUT" | grep -q "ABI 16"             && ok "names the actual ABI"  || fail "actual ABI missing"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "ABI skew left the kit untouched" || fail "kit was modified"
 
 # --- ABI skew hiding behind an early agreeing .mod ------------------------
 # Sampling only the first .mod (alpha.mod, which agrees) would miss zeta.mod
 # disagreeing further down the list.
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
-OUT="$("$SCRIPT" "$TMPD/skew_multi.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
+OUT="$("$SCRIPT" "$TMPD/skew_multi.zip" "$TMPD/modules_l" libramses.a v9.99 2>&1)"; RC=$?
 echo "$OUT"
 [ $RC -eq 1 ] && ok "multi-mod ABI skew exits 1" || fail "multi-mod ABI skew should exit 1"
 echo "$OUT" | grep -q "zeta.mod" && ok "names the offending module" || fail "offending module name missing"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "multi-mod ABI skew left the kit untouched" || fail "kit was modified"
 
 # --- missing BUILDINFO ---------------------------------------------------
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
-"$SCRIPT" "$TMPD/nobi.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
+"$SCRIPT" "$TMPD/nobi.zip" "$TMPD/modules_l" libramses.a v9.99 >/dev/null 2>&1
 [ $? -eq 1 ] && ok "missing BUILDINFO exits 1" || fail "should exit 1"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "missing BUILDINFO left the kit untouched" \
     || fail "kit was modified"
 
 # --- BUILDINFO missing a required key -------------------------------------
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
-OUT="$("$SCRIPT" "$TMPD/missingkey.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
+OUT="$("$SCRIPT" "$TMPD/missingkey.zip" "$TMPD/modules_l" libramses.a v9.99 2>&1)"; RC=$?
 echo "$OUT"
 [ $RC -eq 1 ] && ok "missing key exits 1" || fail "missing key should exit 1"
 echo "$OUT" | grep -q "mod_abi_version" && ok "names the missing key" || fail "missing key not named"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "missing key left the kit untouched" || fail "kit was modified"
 
 # --- BUILDINFO kit_dir does not match the target directory ----------------
 # Feeding one platform's zip at another platform's directory must be caught,
 # not silently installed.
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
-OUT="$("$SCRIPT" "$TMPD/wrongkitdir.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
+OUT="$("$SCRIPT" "$TMPD/wrongkitdir.zip" "$TMPD/modules_l" libramses.a v9.99 2>&1)"; RC=$?
 echo "$OUT"
 [ $RC -eq 1 ] && ok "wrong kit_dir exits 1" || fail "wrong kit_dir should exit 1"
-echo "$OUT" | grep -q "modules_mac" && ok "names the BUILDINFO's kit_dir" || fail "BUILDINFO kit_dir not named"
-echo "$OUT" | grep -q "modules_lin" && ok "names the target directory" || fail "target directory not named"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+echo "$OUT" | grep -q "modules_m" && ok "names the BUILDINFO's kit_dir" || fail "BUILDINFO kit_dir not named"
+echo "$OUT" | grep -q "modules_l" && ok "names the target directory" || fail "target directory not named"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "wrong kit_dir left the kit untouched" || fail "kit was modified"
 
 # --- missing library -----------------------------------------------------
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
-"$SCRIPT" "$TMPD/nolib.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
+"$SCRIPT" "$TMPD/nolib.zip" "$TMPD/modules_l" libramses.a v9.99 >/dev/null 2>&1
 [ $? -eq 1 ] && ok "missing library exits 1" || fail "should exit 1"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "missing library left the kit untouched" || fail "kit was modified"
 
 # --- no .mod files -------------------------------------------------------
 fresh_target
-"$SCRIPT" "$TMPD/nomod.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+"$SCRIPT" "$TMPD/nomod.zip" "$TMPD/modules_l" libramses.a v9.99 >/dev/null 2>&1
 [ $? -eq 1 ] && ok "no .mod files exits 1" || fail "should exit 1"
 
 # --- absent inputs -------------------------------------------------------
-"$SCRIPT" "$TMPD/nope.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+"$SCRIPT" "$TMPD/nope.zip" "$TMPD/modules_l" libramses.a v9.99 >/dev/null 2>&1
 [ $? -eq 1 ] && ok "missing zip exits 1" || fail "missing zip should exit 1"
 
 "$SCRIPT" "$TMPD/good.zip" "$TMPD/no-such-dir" libramses.a v9.99 >/dev/null 2>&1
@@ -244,18 +244,18 @@ EOF
 chmod +x "$FAKEBIN/mktemp"
 
 fresh_target
-BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+BEFORE="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 mkdir -p "$TMPD/cwd_probe"
 (
     cd "$TMPD/cwd_probe" || exit 1
-    PATH="$FAKEBIN:$PATH" "$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+    PATH="$FAKEBIN:$PATH" "$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_l" libramses.a v9.99 >/dev/null 2>&1
 )
 RC=$?
 [ $RC -ne 0 ] && ok "mktemp failure exits non-zero" || fail "mktemp failure should exit non-zero"
 LEFTOVER="$(ls -A "$TMPD/cwd_probe" 2>/dev/null)"
 [ -z "$LEFTOVER" ] && ok "mktemp failure did not scatter files into cwd" \
     || fail "mktemp failure left files in cwd: $LEFTOVER"
-AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+AFTER="$(ls "$TMPD/modules_l" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "mktemp failure left the kit untouched" || fail "kit was modified"
 
 echo ""

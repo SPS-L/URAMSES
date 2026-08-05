@@ -64,11 +64,11 @@ row "$BI_WIN"
 cat <<EOF
 
 Exact compile flags, BLAS build and RAMSES commit for each kit are recorded in
-that kit's \`BUILDINFO.txt\` — for example \`modules_lin/BUILDINFO.txt\`.
+that kit's \`BUILDINFO.txt\`, for example \`modules_l/BUILDINFO.txt\`.
 
-The Windows/Intel kit in \`modules/\` (used by \`msvs/URAMSES.sln\`) is **not**
-refreshed by this release: no CI produces Intel-format modules. See
-\`modules/BUILDINFO.txt\` for what it was last built from.
+The Windows/Intel kit in \`modules_wi/\` (used by \`build/msvs/URAMSES.sln\`) is
+**not** refreshed by this release: no CI produces Intel-format modules. See
+\`modules_wi/BUILDINFO.txt\` for what it was last built from.
 
 ---
 

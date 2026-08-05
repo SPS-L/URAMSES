@@ -1,7 +1,7 @@
 #
 # Makefile for RAMSES using gfortran (macOS, Apple Silicon)
 # For Linux builds use build/Makefile.linux; for Windows use build/Makefile.windows
-# (gfortran) or Visual Studio with msvs/URAMSES.sln (Intel oneAPI).
+# (gfortran) or Visual Studio with build/msvs/URAMSES.sln (Intel oneAPI).
 #
 # Author: Sustainable Power Systems Lab (SPS-L)
 # Web: https://sps-lab.org
@@ -27,9 +27,9 @@ MKDIR = mkdir -p
 
 # Directories
 SRC_DIR = src
-MY_MODELS_DIR = my_models
-MOD_DIR = modules_mac
-OUT_DIR = Release_gnu_m
+CUSTOM_MODELS_DIR = custom_models
+MOD_DIR = modules_m
+OUT_DIR = Release_m
 OBJ_DIR = $(OUT_DIR)/obj
 
 # Output files
@@ -87,11 +87,11 @@ LIBS = -L$(MOD_DIR) -lramses $(BLAS_LIBS)
 # Source files from src/ (excluding main.f90 which is for executable only)
 SRC_FILES = $(filter-out $(SRC_DIR)/main.f90, $(wildcard $(SRC_DIR)/*.f90))
 
-# Source files from my_models/ (only .f90 files)
-MY_MODEL_FILES = $(wildcard $(MY_MODELS_DIR)/*.f90)
+# Source files from custom_models/ (only .f90 files)
+CUSTOM_MODEL_FILES = $(wildcard $(CUSTOM_MODELS_DIR)/*.f90)
 
 # All source files for shared library
-SRCS = $(SRC_FILES) $(MY_MODEL_FILES)
+SRCS = $(SRC_FILES) $(CUSTOM_MODEL_FILES)
 
 # Object files for shared library
 OBJS = $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.f90=.o)))
@@ -109,13 +109,13 @@ UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
 
 ifneq ($(UNAME_S),Darwin)
-    $(error This Makefile is for macOS only. For Linux use build/Makefile.linux; for Windows use build/Makefile.windows or Visual Studio with msvs/URAMSES.sln)
+    $(error This Makefile is for macOS only. For Linux use build/Makefile.linux; for Windows use build/Makefile.windows or Visual Studio with build/msvs/URAMSES.sln)
 endif
 
-# The pre-compiled kit in modules_mac/ is arm64. Stop with a clear message
+# The pre-compiled kit in modules_m/ is arm64. Stop with a clear message
 # rather than let the link fail on an architecture mismatch.
 ifneq ($(UNAME_M),arm64)
-    $(error modules_mac/ ships arm64 objects, but this host is $(UNAME_M). URAMSES on macOS requires Apple Silicon)
+    $(error modules_m/ ships arm64 objects, but this host is $(UNAME_M). URAMSES on macOS requires Apple Silicon)
 endif
 
 # ============================================================================
@@ -153,7 +153,7 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
 	@echo "For Linux builds use build/Makefile.linux; for Windows use"
-	@echo "build/Makefile.windows (gfortran) or Visual Studio with msvs/URAMSES.sln (Intel)."
+	@echo "build/Makefile.windows (gfortran) or Visual Studio with build/msvs/URAMSES.sln (Intel)."
 
 # Check dependencies
 check-deps:
@@ -171,7 +171,7 @@ check-deps:
 	fi
 	@echo ""
 	@echo "Checking architecture..."
-	@echo "  Found: $(UNAME_M) (modules_mac/ requires arm64)"
+	@echo "  Found: $(UNAME_M) (modules_m/ requires arm64)"
 	@echo ""
 	@echo "Checking for BLAS/LAPACK ($(BLAS))..."
 ifeq ($(BLAS),accelerate)
@@ -242,8 +242,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.f90 | $(OBJ_DIR)
 	@echo "Compiling $<..."
 	$(FC) $(FFLAGS) -c $< -o $@ -J$(OBJ_DIR)
 
-# Compile source files from my_models/
-$(OBJ_DIR)/%.o: $(MY_MODELS_DIR)/%.f90 | $(OBJ_DIR)
+# Compile source files from custom_models/
+$(OBJ_DIR)/%.o: $(CUSTOM_MODELS_DIR)/%.f90 | $(OBJ_DIR)
 	@echo "Compiling $<..."
 	$(FC) $(FFLAGS) -c $< -o $@ -J$(OBJ_DIR)
 

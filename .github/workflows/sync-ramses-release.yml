@@ -84,9 +84,9 @@ jobs:
             --pattern 'uramses-modules_*.zip' \
             --dir kits
           ls -l kits
-          for f in uramses-modules_lin-"$TAG".zip \
-                   uramses-modules_mac-"$TAG".zip \
-                   uramses-modules_win_gfortran-"$TAG".zip; do
+          for f in uramses-modules_l-"$TAG".zip \
+                   uramses-modules_m-"$TAG".zip \
+                   uramses-modules_wg-"$TAG".zip; do
             [ -f "kits/$f" ] || { echo "FAIL: RAMSES $TAG has no $f"; exit 1; }
           done
 
@@ -105,19 +105,19 @@ jobs:
         env:
           TAG: ${{ steps.vars.outputs.tag }}
         run: |
-          bash tools/refresh_kit.sh "kits/uramses-modules_lin-$TAG.zip" \
-            modules_lin libramses.a "$TAG"
-          bash tools/refresh_kit.sh "kits/uramses-modules_mac-$TAG.zip" \
-            modules_mac libramses.a "$TAG"
-          bash tools/refresh_kit.sh "kits/uramses-modules_win_gfortran-$TAG.zip" \
-            modules_win_gfortran libramses.lib "$TAG"
+          bash tools/refresh_kit.sh "kits/uramses-modules_l-$TAG.zip" \
+            modules_l libramses.a "$TAG"
+          bash tools/refresh_kit.sh "kits/uramses-modules_m-$TAG.zip" \
+            modules_m libramses.a "$TAG"
+          bash tools/refresh_kit.sh "kits/uramses-modules_wg-$TAG.zip" \
+            modules_wg libramses.lib "$TAG"
 
       - name: Stash the kit metadata for the release job
         run: |
           mkdir -p notes/buildinfo
-          cp modules_lin/BUILDINFO.txt           notes/buildinfo/lin.txt
-          cp modules_mac/BUILDINFO.txt           notes/buildinfo/mac.txt
-          cp modules_win_gfortran/BUILDINFO.txt  notes/buildinfo/win.txt
+          cp modules_l/BUILDINFO.txt           notes/buildinfo/lin.txt
+          cp modules_m/BUILDINFO.txt           notes/buildinfo/mac.txt
+          cp modules_wg/BUILDINFO.txt  notes/buildinfo/win.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -139,7 +139,7 @@ jobs:
           git checkout -b "$BRANCH"
           # -A stages deletions too, which is how modules dropped by this
           # RAMSES release leave the tree.
-          git add -A modules_lin modules_mac modules_win_gfortran
+          git add -A modules_l modules_m modules_wg
           git status --short
           # BUILDINFO.txt carries the tag, commit and timestamp, so there is
           # always a diff; --allow-empty covers the degenerate case anyway so
@@ -179,7 +179,7 @@ jobs:
 
       - name: Assert build outputs
         run: |
-          for f in Release_gnu_l/ramses.so Release_gnu_l/dynsim; do
+          for f in Release_l/ramses.so Release_l/dynsim; do
             [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
             echo "OK: $f ($(wc -c < "$f") bytes)"
           done
@@ -217,7 +217,7 @@ jobs:
 
       - name: Assert build outputs
         run: |
-          for f in Release_gnu_m/ramses.so Release_gnu_m/dynsim; do
+          for f in Release_m/ramses.so Release_m/dynsim; do
             [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
             echo "OK: $f ($(wc -c < "$f") bytes)"
           done
@@ -256,7 +256,7 @@ jobs:
 
       - name: Assert build outputs
         run: |
-          for f in Release_gnu_w/ramses.dll Release_gnu_w/dynsim.exe; do
+          for f in Release_wg/ramses.dll Release_wg/dynsim.exe; do
             [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
             echo "OK: $f ($(wc -c < "$f") bytes)"
           done
