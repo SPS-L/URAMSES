@@ -34,17 +34,28 @@ jobs:
         env:
           TAG: ${{ github.event.client_payload.tag }}
         run: |
-          case "$TAG" in
-            v[0-9]*) ;;
-            *) echo "FAIL: refusing tag '$TAG' (must match ^v[0-9])"; exit 1 ;;
-          esac
-          printf '%s' "$TAG" | grep -qE '^v[0-9][0-9A-Za-z.+-]*$' \
-            || { echo "FAIL: tag '$TAG' has unexpected characters"; exit 1; }
+          # Validate the tag as a single whole string before anything is
+          # written to $GITHUB_OUTPUT. `grep -z` treats the entire input
+          # (embedded newlines included) as one record, so ^...$ must match
+          # start-to-end of the whole value. A line-oriented check here (a
+          # bare `case` glob, or grep without -z) would let a value like
+          # $'v3.51\ntag=EVIL' through: `*` matches newlines in a shell
+          # glob, and ^/$ in plain grep match per line, not per string.
+          if ! printf '%s' "$TAG" | grep -qzE '^v[0-9][0-9A-Za-z.+-]*$'; then
+            echo "FAIL: refusing dispatch tag: it must match ^v[0-9][0-9A-Za-z.+-]*\$ as a single line, with no embedded newlines"
+            exit 1
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Syncing RAMSES $TAG"
 
       - uses: actions/checkout@v4
         with:
+          # repository_dispatch freezes github.sha to the default branch's
+          # tip at dispatch time, and a concurrency-queued or re-run job
+          # replays that same stale value. Naming the branch instead makes
+          # every execution of this step (first run, re-run, or a run stuck
+          # queued behind another) resolve master as it stands right now.
+          ref: master
           fetch-depth: 0
 
       - name: Refuse to re-release an existing tag
@@ -148,9 +159,12 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     steps:
+      # Pinned to the exact commit the release job will publish, not the
+      # mutable branch head, so the tree that was built is provably the
+      # tree that ships.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.fetch.outputs.branch }}
+          ref: ${{ needs.fetch.outputs.head_sha }}
 
       - name: Install dependencies
         run: |
@@ -175,9 +189,12 @@ jobs:
     runs-on: macos-15  # Apple Silicon (arm64), matching the RAMSES kit
     timeout-minutes: 45
     steps:
+      # Pinned to the exact commit the release job will publish, not the
+      # mutable branch head, so the tree that was built is provably the
+      # tree that ships.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.fetch.outputs.branch }}
+          ref: ${{ needs.fetch.outputs.head_sha }}
 
       - name: Install dependencies
         run: |
@@ -213,9 +230,12 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
+      # Pinned to the exact commit the release job will publish, not the
+      # mutable branch head, so the tree that was built is provably the
+      # tree that ships.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.fetch.outputs.branch }}
+          ref: ${{ needs.fetch.outputs.head_sha }}
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -226,6 +246,7 @@ jobs:
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-gcc-fortran
             mingw-w64-x86_64-openblas
+            mingw-w64-x86_64-pkgconf
 
       - name: Check the kit against this compiler
         run: make -f Makefile.windows check-deps
@@ -246,6 +267,11 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+    outputs:
+      # Consumed only by report-failure, so it can say precisely how far a
+      # failed run got instead of guessing.
+      master_moved: ${{ steps.ff.outputs.moved }}
+      release_published: ${{ steps.publish.outputs.published }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -257,6 +283,7 @@ jobs:
           path: inputs
 
       - name: Fast-forward master
+        id: ff
         env:
           HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
           BASE_SHA: ${{ needs.fetch.outputs.base_sha }}
@@ -265,23 +292,16 @@ jobs:
           CURRENT="$(git rev-parse origin/master)"
           if [ "$CURRENT" != "$BASE_SHA" ]; then
             echo "FAIL: master moved from $BASE_SHA to $CURRENT while the kits were building."
-            echo "Rebasing would publish a tree that was never built. Re-run this"
-            echo "workflow once master is settled."
+            echo "Rebasing would publish a tree that was never built. This guard only"
+            echo "catches a change happening during THIS run -- fetch resolves master"
+            echo "at run time on every attempt, so use 'Re-run all jobs' (not 'Re-run"
+            echo "failed jobs') to retry from the current state."
             exit 1
           fi
           # Rejected by the server if it is not a fast-forward.
           git push origin "$HEAD_SHA:refs/heads/master"
           echo "OK: master is now $HEAD_SHA"
-
-      - name: Tag the release commit
-        env:
-          TAG: ${{ needs.fetch.outputs.tag }}
-          HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" "$HEAD_SHA" -m "URAMSES $TAG"
-          git push origin "refs/tags/$TAG"
+          echo "moved=true" >> "$GITHUB_OUTPUT"
 
       - name: Render the release notes
         run: |
@@ -293,17 +313,28 @@ jobs:
           cat release-notes.md
 
       - name: Publish the release
+        id: publish
         env:
           TAG: ${{ needs.fetch.outputs.tag }}
+          HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
           TITLE="$(cat inputs/notes/title.txt)"
           [ -n "$TITLE" ] || TITLE="URAMSES $TAG"
+          # --target creates the tag from HEAD_SHA as part of publishing the
+          # release, instead of a separate `git tag` + `git push` beforehand.
+          # That collapses what used to be two points of no return (a tag
+          # pushed, then a release call that might fail) into one: either
+          # this single call succeeds and both the tag and the release exist,
+          # or it fails and neither does, leaving a clean retry with no
+          # "tag already exists" deadlock.
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
+            --target "$HEAD_SHA" \
             --title "$TITLE" \
             --notes-file release-notes.md \
             inputs/kits/*.zip
+          echo "published=true" >> "$GITHUB_OUTPUT"
 
       - name: Delete the sync branch
         env:
@@ -320,25 +351,61 @@ jobs:
     steps:
       - name: File or update an issue
         env:
-          TAG: ${{ github.event.client_payload.tag }}
+          # The validated tag, when the fetch job got far enough to produce
+          # one. Never trust the raw payload for anything that reaches this
+          # public issue -- it is exactly the value that failed validation
+          # on the path where fetch did not get that far.
+          VALIDATED_TAG: ${{ needs.fetch.outputs.tag }}
+          RAW_TAG: ${{ github.event.client_payload.tag }}
+          MASTER_MOVED: ${{ needs.release.outputs.master_moved }}
+          RELEASE_PUBLISHED: ${{ needs.release.outputs.release_published }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          TAG="$VALIDATED_TAG"
+          if [ -z "$TAG" ]; then
+            # Validation itself is what failed, so the raw payload is still
+            # untrusted free text at this point: strip everything outside
+            # the tag charset and clamp the length before it can reach a
+            # public issue as Markdown, a link, or an @mention.
+            TAG="$(printf '%s' "$RAW_TAG" | tr -cd 'A-Za-z0-9.+-' | cut -c1-80)"
+            [ -n "$TAG" ] || TAG="(unknown)"
+          fi
+
+          # Say how far the run actually got: a human deciding whether it is
+          # safe to touch master needs to know this, and it is exactly wrong
+          # for any failure after the fast-forward.
+          if [ "$RELEASE_PUBLISHED" = "true" ]; then
+            STATE="\`master\` WAS fast-forwarded and the \`$TAG\` release WAS published; a later step failed (for example, deleting the sync branch). Check the run before assuming anything needs redoing."
+          elif [ "$MASTER_MOVED" = "true" ]; then
+            STATE="\`master\` WAS fast-forwarded to the new commit, but no release was published. Check whether \`$TAG\` needs to be created by hand before retrying."
+          else
+            STATE="\`master\` was NOT moved and no release was created."
+          fi
+
           TITLE="RAMSES $TAG: kit sync failed"
           BODY="The sync-ramses-release workflow failed for RAMSES \`$TAG\`.
 
           Run: $RUN_URL
 
-          \`master\` was not moved and no release was created. The sync branch
-          \`sync/ramses-$TAG\` is left in place for inspection; delete it once
-          the cause is fixed and re-run the workflow from the Actions UI."
+          $STATE
+
+          The sync branch \`sync/ramses-$TAG\` is left in place for inspection;
+          delete it once the cause is fixed and re-run the workflow (Re-run all
+          jobs, not just the failed ones) from the Actions UI."
           EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
             --search "$TITLE in:title" --json number -q '.[0].number')"
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
             echo "Commented on existing issue #$EXISTING"
           else
-            gh issue create --repo "$GITHUB_REPOSITORY" \
-              --title "$TITLE" --body "$BODY" --label ci
+            # A missing 'ci' label must not silence the one notification a
+            # failed release run produces.
+            if ! gh issue create --repo "$GITHUB_REPOSITORY" \
+                  --title "$TITLE" --body "$BODY" --label ci; then
+              echo "WARN: creating the issue with the 'ci' label failed (it may not exist yet); filing without a label"
+              gh issue create --repo "$GITHUB_REPOSITORY" \
+                --title "$TITLE" --body "$BODY"
+            fi
             echo "Opened a new issue"
           fi
