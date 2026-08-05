@@ -45,9 +45,7 @@ macOS ships no Fortran compiler, so gfortran comes from Homebrew:
 brew install gcc openblas
 ```
 
-The `modules_mac/` kit contains **arm64 objects only**. On an Intel Mac the
-Makefile stops with a clear message rather than failing at link time; no
-Intel-mac kit is published, so that host needs RAMSES built from source. If
+macOS builds require **Apple Silicon** — the `modules_mac/` kit is arm64. If
 Homebrew installs a versioned binary only, pass it explicitly with
 `FC=gfortran-15`.
 
@@ -238,8 +236,8 @@ make -f Makefile.macos BLAS=accelerate    # Use Apple Accelerate instead of Open
 make -f Makefile.macos FC=gfortran-15     # Use a versioned Homebrew gfortran
 ```
 
-Two guards stop the build early with an explanatory message: the kit is arm64
-only, so Intel Macs are rejected up front; and `check-deps` refuses to continue
+Two guards stop the build early with an explanatory message: the kit is arm64,
+so a non-arm64 host is rejected up front; and `check-deps` refuses to continue
 if your gfortran writes a different `.mod` format version than the kit.
 
 #### Output
@@ -496,9 +494,8 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
    - Install a matching compiler with `brew install gcc`, then pass it explicitly
      if Homebrew only provides a versioned binary: `make -f Makefile.macos FC=gfortran-15`
 
-2. **`modules_mac/ ships arm64 objects only`**
-   - The pre-compiled kit is Apple Silicon only; no Intel-mac kit is distributed
-   - Build RAMSES from source for that host
+2. **`modules_mac/ ships arm64 objects`**
+   - macOS builds require Apple Silicon
 
 3. **OpenBLAS not found**
    - `brew install openblas` (Homebrew keeps it keg-only; the Makefile finds it

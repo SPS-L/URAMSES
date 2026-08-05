@@ -35,7 +35,7 @@ Constraints worth knowing before editing these files:
 
 - macOS uses `ramses.so`, **not** `ramses.dylib` — PyRAMSES separates platforms
   by the `libs/lin`, `libs/mac`, `libs/win` folder, not by filename.
-- `modules_mac/` holds arm64 objects only; there is no Intel-mac kit.
+- `modules_mac/` is arm64; macOS builds require Apple Silicon.
 - `modules_mac/` and `modules_win_gfortran/` are GFORTRAN module version 16
   (gfortran 15+); `modules_lin/` is version 15. Each `check-deps` compares the
   local compiler against the kit and fails early on a mismatch.

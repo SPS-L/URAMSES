@@ -112,10 +112,10 @@ ifneq ($(UNAME_S),Darwin)
     $(error This Makefile is for macOS only. For Linux use Makefile.linux; for Windows use Makefile.mingw or Visual Studio with URAMSES.sln)
 endif
 
-# The pre-compiled kit in modules_mac/ is built for arm64 only. On an Intel Mac
-# the link fails with an architecture mismatch, so stop with a clear message.
+# The pre-compiled kit in modules_mac/ is arm64. Stop with a clear message
+# rather than let the link fail on an architecture mismatch.
 ifneq ($(UNAME_M),arm64)
-    $(error modules_mac/ ships arm64 (Apple Silicon) objects only, but this host is $(UNAME_M). An Intel-mac RAMSES kit is not distributed; build RAMSES from source for this host)
+    $(error modules_mac/ ships arm64 objects, but this host is $(UNAME_M). URAMSES on macOS requires Apple Silicon)
 endif
 
 # ============================================================================
