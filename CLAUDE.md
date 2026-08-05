@@ -47,16 +47,6 @@ Constraints worth knowing before editing these files:
 Kits come from the matching `stepss-ramses` release, e.g.
 `uramses-modules_{lin,mac,win_gfortran}-v3.51.zip` for RAMSES v3.51.
 
-## Build Commands (Docker)
-
-```bash
-docker compose build                       # One-time image build (~2 min)
-docker compose run --rm uramses-build      # Build ramses.so → output/ramses.so
-./build.sh                                 # Convenience wrapper for the above
-```
-
-No compiler or library installation needed on the host — the Docker image (Ubuntu 24.04) bundles gfortran and OpenBLAS. The repo root is bind-mounted into the container, so edits to `my_models/` are picked up without rebuilding the image.
-
 ## Architecture
 
 **Build dependency chain:**
@@ -73,8 +63,6 @@ main.f90 → c_interface.f90 → usr_*_models.f90 → my_models/*.f90 + FUNCTION
 - `modules_mac/` — Pre-compiled RAMSES library and `.mod` files (macOS arm64/gfortran)
 - `modules_win_gfortran/` — Pre-compiled RAMSES library and `.mod` files (Windows/MinGW)
 - `modules/` — Pre-compiled RAMSES library and `.mod` files (Windows/Intel)
-- `docker/` — Dockerfile for containerized builds
-- `output/` — Docker build output directory (ramses.so)
 
 **Model router pattern** (`src/usr_*_models.f90`): Each file contains an `assoc_*_ptr` subroutine that maps string model names to Fortran subroutine pointers via `select case`. Five model categories exist: `exc` (exciters), `inj` (injectors), `tor` (torque/governors), `twop` (two-port devices), `dctl` (discrete control).
 

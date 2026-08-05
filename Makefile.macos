@@ -115,7 +115,7 @@ endif
 # The pre-compiled kit in modules_mac/ is built for arm64 only. On an Intel Mac
 # the link fails with an architecture mismatch, so stop with a clear message.
 ifneq ($(UNAME_M),arm64)
-    $(error modules_mac/ ships arm64 (Apple Silicon) objects only, but this host is $(UNAME_M). An Intel-mac RAMSES kit is not distributed; build RAMSES from source or use the Linux/Docker route)
+    $(error modules_mac/ ships arm64 (Apple Silicon) objects only, but this host is $(UNAME_M). An Intel-mac RAMSES kit is not distributed; build RAMSES from source for this host)
 endif
 
 # ============================================================================
