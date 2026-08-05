@@ -68,7 +68,7 @@ echo "--- end of rendered notes ---"
 echo "$OUT" | grep -q "## Toolchain and kit provenance" && ok "has the provenance heading" \
     || fail "provenance heading missing"
 
-for m in Makefile.linux Makefile.macos Makefile.windows; do
+for m in build/Makefile.linux build/Makefile.macos build/Makefile.windows; do
     echo "$OUT" | grep -q "$m" && ok "row for $m" || fail "no row for $m"
 done
 for d in modules_lin modules_mac modules_win_gfortran; do
@@ -84,9 +84,13 @@ echo "$OUT" | grep -q "14.2.0" && ok "windows compiler shown" || fail "windows c
 # under ".mod ABI") -- these fixed-string matches on the complete row pin
 # every value to its correct column: Makefile | kit dir | compiler | ABI |
 # target | runtime floor.
-LIN_ROW='| `Makefile.linux` | `modules_lin` | GNU Fortran (Ubuntu) 11.4.0 | 15 | `x86_64-pc-linux-gnu` | glibc 2.35 |'
-MAC_ROW='| `Makefile.macos` | `modules_mac` | GNU Fortran (Homebrew) 15.1.0 | 16 | `aarch64-apple-darwin24` | macOS 15 arm64 |'
-WIN_ROW='| `Makefile.windows` | `modules_win_gfortran` | GNU Fortran (MinGW) 14.2.0 | 16 | `x86_64-w64-mingw32` | static |'
+#
+# The fixtures above carry a bare `Makefile.<plat>` in consume_with, matching
+# what stepss-ramses CI stamps into a kit; the expected rows carry the
+# `build/` prefix row() adds, so these also pin that normalisation.
+LIN_ROW='| `build/Makefile.linux` | `modules_lin` | GNU Fortran (Ubuntu) 11.4.0 | 15 | `x86_64-pc-linux-gnu` | glibc 2.35 |'
+MAC_ROW='| `build/Makefile.macos` | `modules_mac` | GNU Fortran (Homebrew) 15.1.0 | 16 | `aarch64-apple-darwin24` | macOS 15 arm64 |'
+WIN_ROW='| `build/Makefile.windows` | `modules_win_gfortran` | GNU Fortran (MinGW) 14.2.0 | 16 | `x86_64-w64-mingw32` | static |'
 
 echo "$OUT" | grep -qF "$LIN_ROW" && ok "linux row matches column layout exactly" \
     || fail "linux row does not match expected column layout: '$LIN_ROW'"
@@ -94,6 +98,16 @@ echo "$OUT" | grep -qF "$MAC_ROW" && ok "macos row matches column layout exactly
     || fail "macos row does not match expected column layout: '$MAC_ROW'"
 echo "$OUT" | grep -qF "$WIN_ROW" && ok "windows row matches column layout exactly" \
     || fail "windows row does not match expected column layout: '$WIN_ROW'"
+
+echo "$OUT" | grep -q 'build/build/' \
+    && fail "consume_with was prefixed twice" || ok "no double build/ prefix"
+
+# an already-qualified consume_with must pass through untouched
+mk "$TMPD/lin_q.txt" modules_lin "GNU Fortran (Ubuntu) 11.4.0" 15 \
+   x86_64-pc-linux-gnu "glibc 2.35" build/Makefile.linux
+QOUT="$("$SCRIPT" "$TMPD/body.md" "$TMPD/lin_q.txt" "$TMPD/mac.txt" "$TMPD/win.txt")"
+echo "$QOUT" | grep -qF "$LIN_ROW" && ok "qualified consume_with passes through" \
+    || fail "qualified consume_with was rewritten"
 
 # three data rows plus a header and a separator
 ROWS="$(echo "$OUT" | grep -c '^| ')"

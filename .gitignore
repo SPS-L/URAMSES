@@ -1,11 +1,19 @@
+# Build output
 /Release_*
 /Debug_*
+/x64/
+/doc/
+
+# Visual Studio / Intel Fortran per-user and generated files
+*.suo
+*.u2d
 *.user
+*.vfproj.*
+/.vs/
+
+# Editor / tooling scratch
 *.html
 *.layout
-/doc/
-/x64/
-/.vs/
 /.claude/
 .mcp.json
 /.superpowers/

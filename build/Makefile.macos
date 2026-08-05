@@ -1,7 +1,7 @@
 #
 # Makefile for RAMSES using gfortran (macOS, Apple Silicon)
-# For Linux builds use Makefile.linux; for Windows use Makefile.windows
-# (gfortran) or Visual Studio with URAMSES.sln (Intel oneAPI).
+# For Linux builds use build/Makefile.linux; for Windows use build/Makefile.windows
+# (gfortran) or Visual Studio with msvs/URAMSES.sln (Intel oneAPI).
 #
 # Author: Sustainable Power Systems Lab (SPS-L)
 # Web: https://sps-lab.org
@@ -16,7 +16,7 @@
 # Compiler and tools
 # macOS ships no Fortran compiler; gfortran comes from Homebrew ("brew install
 # gcc"). Override FC if your Homebrew gcc installs a versioned binary only,
-# e.g. "make -f Makefile.macos FC=gfortran-14".
+# e.g. "make -f build/Makefile.macos FC=gfortran-14".
 # Assigned with = rather than ?= because make predefines FC as f77, which ?=
 # would leave in place; a command-line FC= still wins over this.
 FC = gfortran
@@ -41,7 +41,7 @@ TARGET_EXE = dynsim
 
 # BLAS/LAPACK provider: "openblas" (default, matches the Linux build) or
 # "accelerate" to use Apple's system framework instead:
-#   make -f Makefile.macos BLAS=accelerate
+#   make -f build/Makefile.macos BLAS=accelerate
 BLAS ?= openblas
 
 # Compiler flags
@@ -104,12 +104,12 @@ OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 # ============================================================================
 
 # Detected platform. Both are plain variables so a dry run can be checked from
-# another host, e.g. "make -f Makefile.macos UNAME_S=Darwin UNAME_M=arm64 -n".
+# another host, e.g. "make -f build/Makefile.macos UNAME_S=Darwin UNAME_M=arm64 -n".
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
 
 ifneq ($(UNAME_S),Darwin)
-    $(error This Makefile is for macOS only. For Linux use Makefile.linux; for Windows use Makefile.windows or Visual Studio with URAMSES.sln)
+    $(error This Makefile is for macOS only. For Linux use build/Makefile.linux; for Windows use build/Makefile.windows or Visual Studio with msvs/URAMSES.sln)
 endif
 
 # The pre-compiled kit in modules_mac/ is arm64. Stop with a clear message
@@ -138,7 +138,7 @@ help:
 	@echo "RAMSES macOS Build System (gfortran, Apple Silicon)"
 	@echo "==================================================="
 	@echo ""
-	@echo "Usage: make -f Makefile.macos [target] [BLAS=openblas|accelerate]"
+	@echo "Usage: make -f build/Makefile.macos [target] [BLAS=openblas|accelerate]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all         - Build both ramses.so and dynsim (default)"
@@ -152,8 +152,8 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for PyRAMSES"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
-	@echo "For Linux builds use Makefile.linux; for Windows use"
-	@echo "Makefile.windows (gfortran) or Visual Studio with URAMSES.sln (Intel)."
+	@echo "For Linux builds use build/Makefile.linux; for Windows use"
+	@echo "build/Makefile.windows (gfortran) or Visual Studio with msvs/URAMSES.sln (Intel)."
 
 # Check dependencies
 check-deps:
@@ -164,7 +164,7 @@ check-deps:
 		echo "ERROR: $(FC) not found. Install the GNU compilers via Homebrew:"; \
 		echo "  brew install gcc"; \
 		echo "If Homebrew installed a versioned binary only, pass it explicitly:"; \
-		echo "  make -f Makefile.macos FC=gfortran-14"; \
+		echo "  make -f build/Makefile.macos FC=gfortran-14"; \
 		exit 1; \
 	else \
 		echo "  Found: $$($(FC) --version | head -n1)"; \
@@ -185,7 +185,7 @@ else
 		echo "ERROR: OpenBLAS not found. Install it with:"; \
 		echo "  brew install openblas"; \
 		echo "Or build against Apple's framework instead:"; \
-		echo "  make -f Makefile.macos BLAS=accelerate"; \
+		echo "  make -f build/Makefile.macos BLAS=accelerate"; \
 		exit 1; \
 	fi
 endif

@@ -1,7 +1,7 @@
 #
 # Makefile for RAMSES using gfortran (Linux only)
-# For macOS use Makefile.macos; for Windows use Makefile.windows (gfortran)
-# or Visual Studio with URAMSES.sln (Intel oneAPI).
+# For macOS use build/Makefile.macos; for Windows use build/Makefile.windows (gfortran)
+# or Visual Studio with msvs/URAMSES.sln (Intel oneAPI).
 #
 # Author: Sustainable Power Systems Lab (SPS-L)
 # Web: https://sps-lab.org
@@ -77,11 +77,11 @@ OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 # ============================================================================
 
 # Detected platform. A plain variable so a dry run can be checked from another
-# host, e.g. "make -f Makefile.linux UNAME_S=Linux -n".
+# host, e.g. "make -f build/Makefile.linux UNAME_S=Linux -n".
 UNAME_S := $(shell uname -s)
 
 ifneq ($(UNAME_S),Linux)
-    $(error This Makefile is for Linux only. For macOS use Makefile.macos; for Windows use Makefile.windows or Visual Studio with URAMSES.sln)
+    $(error This Makefile is for Linux only. For macOS use build/Makefile.macos; for Windows use build/Makefile.windows or Visual Studio with msvs/URAMSES.sln)
 endif
 
 # ============================================================================
@@ -104,7 +104,7 @@ help:
 	@echo "RAMSES Linux Build System (gfortran)"
 	@echo "====================================="
 	@echo ""
-	@echo "Usage: make -f Makefile.linux [target]"
+	@echo "Usage: make -f build/Makefile.linux [target]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all         - Build both ramses.so and dynsim (default)"
@@ -118,8 +118,8 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for PyRAMSES"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
-	@echo "For macOS use Makefile.macos; for Windows use Makefile.windows"
-	@echo "(gfortran) or Visual Studio with URAMSES.sln (Intel oneAPI)."
+	@echo "For macOS use build/Makefile.macos; for Windows use build/Makefile.windows"
+	@echo "(gfortran) or Visual Studio with msvs/URAMSES.sln (Intel oneAPI)."
 
 # Check dependencies
 check-deps:
@@ -132,7 +132,7 @@ check-deps:
 		echo "  Fedora/RHEL:   sudo dnf install gcc-gfortran"; \
 		echo "  Arch Linux:    sudo pacman -S gcc-fortran"; \
 		echo "If your distribution's default gfortran is the wrong generation, pass a versioned one explicitly:"; \
-		echo "  make -f Makefile.linux FC=gfortran-11"; \
+		echo "  make -f build/Makefile.linux FC=gfortran-11"; \
 		exit 1; \
 	else \
 		echo "  Found: $$($(FC) --version | head -n1)"; \

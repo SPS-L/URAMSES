@@ -78,11 +78,11 @@ case "$PLATFORM" in
     linux)
         echo "Install a matching gfortran and pass it explicitly, e.g. on Ubuntu:"
         echo "  sudo apt install gfortran-11"
-        echo "  make -f Makefile.linux FC=gfortran-11"
+        echo "  make -f build/Makefile.linux FC=gfortran-11"
         ;;
     macos)
         echo "Install a matching gfortran (brew install gcc) and if it is versioned, pass it:"
-        echo "  make -f Makefile.macos FC=gfortran-15"
+        echo "  make -f build/Makefile.macos FC=gfortran-15"
         ;;
     windows)
         echo "Update the MSYS2 toolchain from an MSYS2 shell:"

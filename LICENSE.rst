@@ -1,3 +1,70 @@
+=====================
+Scope of this licence
+=====================
+
+URAMSES is distributed under the Apache License 2.0, reproduced in full below.
+That licence does **not** apply uniformly to everything in this repository, so
+read this section before redistributing.
+
+Covered by the Apache License 2.0
+---------------------------------
+
+Copyright 2026 Petros Aristidou. The Apache License 2.0 covers the work
+authored in this repository:
+
+  - ``src/`` — framework sources (C interface, model routers, shared functions)
+  - ``my_models/`` — the example user models shipped here
+  - ``build/``, ``msvs/`` — build files for every supported route
+  - ``tools/``, ``.github/`` — helper scripts and CI
+  - ``README.md``, ``CLAUDE.md`` and the other documentation in this repository
+
+NOT covered by the Apache License 2.0
+-------------------------------------
+
+The pre-compiled RAMSES library and its Fortran ``.mod`` interface files,
+shipped in ``modules/``, ``modules_lin/``, ``modules_mac/`` and
+``modules_win_gfortran/``, are **not** Apache-licensed and are **not**
+open source. Their source code is not included in this repository.
+
+RAMSES, the solver of the differential-algebraic equations that URAMSES links
+against, is the property of the University of Liège, Belgium, and is
+distributed under separate proprietary terms:
+
+  - Permission is granted to use RAMSES free of charge for any non-commercial
+    purpose, including teaching and research at universities, colleges, and
+    other educational institutions, research at non-profit research
+    institutions, and personal non-profit purposes.
+
+  - For commercial use of RAMSES — including but not restricted to consulting
+    activities, design of commercial hardware or software products, or
+    participation by a commercial entity in research projects — you must
+    contact the Authors for an appropriate licence.
+
+  - The free-of-charge version of RAMSES is limited to power system models of
+    up to 1000 buses and execution using no more than 2 cores.
+
+  - RAMSES is provided "as is", without warranty of any kind.
+
+What this means in practice
+---------------------------
+
+The Apache License 2.0 grants you the right to copy, modify and redistribute
+*this repository's own code*. It grants you nothing with respect to the
+bundled RAMSES binaries. A build of URAMSES is linked against RAMSES, so
+running or redistributing that build is governed by both sets of terms, and
+the RAMSES terms above are the binding ones for the binary.
+
+Other components of the STEPSS suite (for example PFC and CODEGEN) are not
+distributed in this repository and carry their own separate terms.
+
+Authors
+-------
+
+  - Dr. Petros Aristidou (petros.aristidou@cut.ac.cy)
+  - Dr. Thierry Van Cutsem (thierry.h.van.cutsem@gmail.com)
+
+----
+
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/

@@ -172,10 +172,10 @@ jobs:
           sudo apt-get install -y gfortran libopenblas-dev
 
       - name: Check the kit against this compiler
-        run: make -f Makefile.linux check-deps
+        run: make -f build/Makefile.linux check-deps
 
       - name: Build
-        run: make -f Makefile.linux clean all
+        run: make -f build/Makefile.linux clean all
 
       - name: Assert build outputs
         run: |
@@ -210,10 +210,10 @@ jobs:
           gfortran --version | head -n1
 
       - name: Check the kit against this compiler
-        run: make -f Makefile.macos check-deps
+        run: make -f build/Makefile.macos check-deps
 
       - name: Build
-        run: make -f Makefile.macos clean all
+        run: make -f build/Makefile.macos clean all
 
       - name: Assert build outputs
         run: |
@@ -249,10 +249,10 @@ jobs:
             mingw-w64-x86_64-pkgconf
 
       - name: Check the kit against this compiler
-        run: make -f Makefile.windows check-deps
+        run: make -f build/Makefile.windows check-deps
 
       - name: Build
-        run: make -f Makefile.windows clean all
+        run: make -f build/Makefile.windows clean all
 
       - name: Assert build outputs
         run: |

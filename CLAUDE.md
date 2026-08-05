@@ -9,30 +9,37 @@ URAMSES is a Fortran framework for integrating custom user-defined models into P
 ## Build Commands (Linux)
 
 ```bash
-make -f Makefile.linux            # Build shared library + executable
-make -f Makefile.linux dll        # Shared library only (ramses.so)
-make -f Makefile.linux exe        # Executable only (dynsim)
-make -f Makefile.linux clean      # Remove build artifacts
-make -f Makefile.linux check-deps # Verify dependencies (gfortran, OpenBLAS, libramses.a)
+make -f build/Makefile.linux            # Build shared library + executable
+make -f build/Makefile.linux dll        # Shared library only (ramses.so)
+make -f build/Makefile.linux exe        # Executable only (dynsim)
+make -f build/Makefile.linux clean      # Remove build artifacts
+make -f build/Makefile.linux check-deps # Verify dependencies (gfortran, OpenBLAS, libramses.a)
 ```
 
 Output goes to `Release_gnu_l/`.
 
 ## Build Commands (macOS and Windows/MinGW)
 
-`Makefile.macos` and `Makefile.windows` mirror `Makefile.linux` — same targets
+`build/Makefile.macos` and `build/Makefile.windows` mirror `build/Makefile.linux` — same targets
 (`all`/`dll`/`exe`/`clean`/`check-deps`/`help`), same wildcard model discovery —
 and differ only in the module directory, output directory, and library naming:
 
 | Route | Makefile | Modules | Output dir | Shared lib |
 |---|---|---|---|---|
-| Linux | `Makefile.linux` | `modules_lin/` (`libramses.a`) | `Release_gnu_l/` | `ramses.so` |
-| macOS arm64 | `Makefile.macos` | `modules_mac/` (`libramses.a`) | `Release_gnu_m/` | `ramses.so` |
-| Windows MinGW | `Makefile.windows` | `modules_win_gfortran/` (`libramses.lib`) | `Release_gnu_w/` | `ramses.dll` |
-| Windows Intel | `URAMSES.sln` | `modules/` (`libramses.lib`) | `Release_intel_w64/` | `ramses.dll` |
+| Linux | `build/Makefile.linux` | `modules_lin/` (`libramses.a`) | `Release_gnu_l/` | `ramses.so` |
+| macOS arm64 | `build/Makefile.macos` | `modules_mac/` (`libramses.a`) | `Release_gnu_m/` | `ramses.so` |
+| Windows MinGW | `build/Makefile.windows` | `modules_win_gfortran/` (`libramses.lib`) | `Release_gnu_w/` | `ramses.dll` |
+| Windows Intel | `msvs/URAMSES.sln` | `modules/` (`libramses.lib`) | `Release_intel_w64/` | `ramses.dll` |
 
 Constraints worth knowing before editing these files:
 
+- The Makefiles live in `build/` but are **always invoked from the repo root**
+  (`make -f build/Makefile.linux`). `-f` does not change make's working
+  directory, so every path inside them stays repo-root-relative — do not add
+  `../` prefixes, and do not `cd build` to run them.
+- The `.vfproj` files live in `msvs/` and their paths *are* relative to their
+  own directory, hence the `..\src\`, `..\modules`, `..\Release_intel_w64`
+  prefixes. The two routes resolve paths differently; keep them straight.
 - macOS uses `ramses.so`, **not** `ramses.dylib` — PyRAMSES separates platforms
   by the `libs/lin`, `libs/mac`, `libs/win` folder, not by filename.
 - `modules_mac/` is arm64; macOS builds require Apple Silicon.
@@ -42,7 +49,7 @@ Constraints worth knowing before editing these files:
   runner's compiler. Each `check-deps` compares the local compiler against the
   kit and fails early on a mismatch.
 - The Windows gfortran kit ships `libramses.lib`, which MinGW's linker does not
-  probe for `-lramses`, so `Makefile.windows` passes it by explicit path.
+  probe for `-lramses`, so `build/Makefile.windows` passes it by explicit path.
 - `FC` is assigned with `=` not `?=` in all three: make predefines `FC` as `f77`,
   which `?=` would leave in place. A command-line `FC=` still overrides.
 
@@ -62,7 +69,7 @@ Every kit carries a `BUILDINFO.txt` recording the compiler, `.mod` ABI
 version, flags, BLAS and runtime floor behind it. `tools/check_kit.sh` reads it
 during `check-deps` and refuses a compiler that cannot read the kit.
 
-`modules/` (Intel, consumed by `URAMSES.sln`) is outside all of this and is
+`modules/` (Intel, consumed by `msvs/URAMSES.sln`) is outside all of this and is
 still refreshed by hand.
 
 The runner images in the sync workflow deliberately mirror those in
@@ -104,7 +111,7 @@ main.f90 → c_interface.f90 → usr_*_models.f90 → my_models/*.f90 + FUNCTION
 
 1. Create `my_models/<type>_<NAME>.f90` following the naming convention (`exc_`, `inj_`, `tor_`, `twop_`, `dctl_`)
 2. Register in the corresponding `src/usr_<type>_models.f90` by adding a `case` to the `select case` block
-3. Rebuild with the Makefile for your platform, e.g. `make -f Makefile.linux clean all`
+3. Rebuild with the Makefile for your platform, e.g. `make -f build/Makefile.linux clean all`
 
 All three Makefiles auto-discover `.f90` files in `my_models/` via wildcard. Only the Intel Visual Studio route requires files to be added to the project by hand.
 

@@ -1,8 +1,8 @@
 #
 # Makefile for RAMSES using gfortran (Windows, MinGW-w64 via MSYS2)
 # This is the free-toolchain Windows route. The Intel oneAPI route is
-# unaffected and still uses Visual Studio with URAMSES.sln.
-# For Linux use Makefile.linux; for macOS use Makefile.macos.
+# unaffected and still uses Visual Studio with msvs/URAMSES.sln.
+# For Linux use build/Makefile.linux; for macOS use build/Makefile.macos.
 #
 # Run this from an "MSYS2 MinGW 64-bit" shell, not the plain MSYS shell:
 # the plain MSYS shell targets the Cygwin-like runtime and produces a DLL
@@ -92,12 +92,12 @@ OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 # Detected platform. MSYS2 sets OS=Windows_NT; uname reports MINGW64_NT-* in a
 # MinGW shell and MSYS_NT-* in the plain MSYS shell. UNAME_S is a plain
 # variable so a dry run can be checked from another host, e.g.
-# "make -f Makefile.windows UNAME_S=MINGW64_NT-10.0 -n".
+# "make -f build/Makefile.windows UNAME_S=MINGW64_NT-10.0 -n".
 UNAME_S := $(shell uname -s 2>/dev/null)
 
 ifneq ($(OS),Windows_NT)
     ifeq (,$(findstring MINGW,$(UNAME_S)))
-        $(error This Makefile is for Windows with MinGW-w64/MSYS2. For Linux use Makefile.linux; for macOS use Makefile.macos; for Intel oneAPI use Visual Studio with URAMSES.sln)
+        $(error This Makefile is for Windows with MinGW-w64/MSYS2. For Linux use build/Makefile.linux; for macOS use build/Makefile.macos; for Intel oneAPI use Visual Studio with msvs/URAMSES.sln)
     endif
 endif
 
@@ -127,7 +127,7 @@ help:
 	@echo "RAMSES Windows Build System (gfortran / MinGW-w64)"
 	@echo "=================================================="
 	@echo ""
-	@echo "Usage: make -f Makefile.windows [target]"
+	@echo "Usage: make -f build/Makefile.windows [target]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all         - Build both ramses.dll and dynsim.exe (default)"
@@ -142,7 +142,7 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
 	@echo "Run from the MSYS2 MinGW 64-bit shell. For the Intel oneAPI route,"
-	@echo "use Visual Studio with URAMSES.sln instead."
+	@echo "use Visual Studio with msvs/URAMSES.sln instead."
 
 # Check dependencies
 check-deps:

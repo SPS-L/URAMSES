@@ -25,9 +25,18 @@ done
 # One aligned key/value pair out of a BUILDINFO.txt.
 bi() { sed -n "s/^$2[[:space:]]\{1,\}//p" "$1" | head -n1; }
 
+# The kits are stamped by stepss-ramses CI, which records `consume_with` as a
+# bare `Makefile.<plat>`. URAMSES keeps its Makefiles in `build/`, so prefix a
+# bare filename here rather than emit a path that does not exist. Already-
+# qualified values pass through, so this stays correct if RAMSES starts
+# writing the full path.
 row() {   # row <buildinfo-file>
+    consume="$(bi "$1" consume_with)"
+    case "$consume" in
+        Makefile.*) consume="build/$consume" ;;
+    esac
     printf '| `%s` | `%s` | %s | %s | `%s` | %s |\n' \
-        "$(bi "$1" consume_with)" \
+        "$consume" \
         "$(bi "$1" kit_dir)" \
         "$(bi "$1" compiler)" \
         "$(bi "$1" mod_abi_version)" \
@@ -57,7 +66,7 @@ cat <<EOF
 Exact compile flags, BLAS build and RAMSES commit for each kit are recorded in
 that kit's \`BUILDINFO.txt\` — for example \`modules_lin/BUILDINFO.txt\`.
 
-The Windows/Intel kit in \`modules/\` (used by \`URAMSES.sln\`) is **not**
+The Windows/Intel kit in \`modules/\` (used by \`msvs/URAMSES.sln\`) is **not**
 refreshed by this release: no CI produces Intel-format modules. See
 \`modules/BUILDINFO.txt\` for what it was last built from.
 

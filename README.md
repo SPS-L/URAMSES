@@ -67,8 +67,8 @@ cannot load. The Makefile refuses to run there.
 - **Intel oneAPI Fortran Compiler** (formerly Intel Fortran)
 - **PyRAMSES** (Python package) or the **STEPSS** Java interface
 
-For detailed installation instructions of the Intel oneAPI Fortran compiler, refer to the included PDF:
-[Installing the Intel oneAPI Fortran compiler.pdf](Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf)
+For installation instructions, see Intel's [oneAPI HPC Toolkit
+documentation](https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html).
 
 ## Quick Start
 
@@ -76,7 +76,7 @@ For detailed installation instructions of the Intel oneAPI Fortran compiler, ref
 
 ```bash
 # Build everything (shared library + executable)
-make -f Makefile.linux
+make -f build/Makefile.linux
 
 # Run standalone simulation
 ./Release_gnu_l/dynsim
@@ -86,7 +86,7 @@ make -f Makefile.linux
 
 ```bash
 # Build everything (shared library + executable)
-make -f Makefile.macos
+make -f build/Makefile.macos
 
 # Run standalone simulation
 ./Release_gnu_m/dynsim
@@ -95,7 +95,7 @@ make -f Makefile.macos
 To link against Apple's Accelerate framework instead of OpenBLAS:
 
 ```bash
-make -f Makefile.macos BLAS=accelerate
+make -f build/Makefile.macos BLAS=accelerate
 ```
 
 ### Windows (MinGW / gfortran)
@@ -104,7 +104,7 @@ From the "MSYS2 MinGW 64-bit" shell:
 
 ```bash
 # Build everything (shared library + executable)
-make -f Makefile.windows
+make -f build/Makefile.windows
 
 # Run standalone simulation
 ./Release_gnu_w/dynsim.exe
@@ -112,7 +112,7 @@ make -f Makefile.windows
 
 ### Windows (Intel oneAPI)
 
-1. Open `URAMSES.sln` in Visual Studio
+1. Open `msvs/URAMSES.sln` in Visual Studio
 2. Select `Release|x64` configuration
 3. Build → Build Solution
 4. Run `Release_intel_w64\dynsim.exe`
@@ -170,13 +170,16 @@ URAMSES/
 ├── modules_win_gfortran/   # Pre-compiled modules (Windows/MinGW gfortran)
 │   ├── *.mod               # Module interface files
 │   └── libramses.lib       # Pre-compiled RAMSES library
-├── URAMSES.sln             # Visual Studio solution file (Windows/Intel)
-├── dllramses.vfproj        # DLL project - ramses.dll (Windows/Intel)
-├── exeramses.vfproj        # Executable project - dynsim.exe (Windows/Intel)
-├── MDL.vfproj              # Model library project - ramsesmdl.dll (Windows/Intel)
-├── Makefile.linux          # Makefile for Linux builds
-├── Makefile.macos          # Makefile for macOS builds (Apple Silicon)
-├── Makefile.windows        # Makefile for Windows/MinGW builds
+├── build/                  # gfortran build files (run from the repo root)
+│   ├── Makefile.linux      # Linux builds
+│   ├── Makefile.macos      # macOS builds (Apple Silicon)
+│   └── Makefile.windows    # Windows/MinGW builds
+├── msvs/                   # Visual Studio build files (Windows/Intel)
+│   ├── URAMSES.sln         # Solution file
+│   ├── dllramses.vfproj    # DLL project - ramses.dll
+│   ├── exeramses.vfproj    # Executable project - dynsim.exe
+│   └── MDL.vfproj          # Model library project - ramsesmdl.dll
+├── tools/                  # Kit-verification and release helper scripts
 ├── Release_intel_w64/      # Compiled output (Windows/Intel)
 ├── Release_gnu_w/          # Compiled output (Windows/MinGW)
 ├── Release_gnu_m/          # Compiled output (macOS)
@@ -200,12 +203,12 @@ URAMSES/
 #### Makefile Targets
 
 ```bash
-make -f Makefile.linux            # Build both ramses.so and dynsim (default)
-make -f Makefile.linux dll        # Build only ramses.so (shared library)
-make -f Makefile.linux exe        # Build only dynsim (executable)
-make -f Makefile.linux clean      # Remove build artifacts
-make -f Makefile.linux check-deps # Verify dependencies
-make -f Makefile.linux help       # Show help
+make -f build/Makefile.linux            # Build both ramses.so and dynsim (default)
+make -f build/Makefile.linux dll        # Build only ramses.so (shared library)
+make -f build/Makefile.linux exe        # Build only dynsim (executable)
+make -f build/Makefile.linux clean      # Remove build artifacts
+make -f build/Makefile.linux check-deps # Verify dependencies
+make -f build/Makefile.linux help       # Show help
 ```
 
 #### Output
@@ -218,22 +221,22 @@ Release_gnu_l/dynsim      # Standalone executable
 
 ### Building on macOS (Apple Silicon)
 
-`Makefile.macos` mirrors the Linux build: it auto-detects sources, links against
+`build/Makefile.macos` mirrors the Linux build: it auto-detects sources, links against
 `libramses.a` from `modules_mac/`, and writes `Release_gnu_m/`. The shared
 library is named `ramses.so` — the same as on Linux, because PyRAMSES keeps the
 two apart in per-platform `libs/` folders rather than by filename. Do not rename
 it to `ramses.dylib`.
 
 ```bash
-make -f Makefile.macos                    # Build both ramses.so and dynsim (default)
-make -f Makefile.macos dll                # Build only ramses.so (shared library)
-make -f Makefile.macos exe                # Build only dynsim (executable)
-make -f Makefile.macos clean              # Remove build artifacts
-make -f Makefile.macos check-deps         # Verify dependencies
-make -f Makefile.macos help               # Show help
+make -f build/Makefile.macos                    # Build both ramses.so and dynsim (default)
+make -f build/Makefile.macos dll                # Build only ramses.so (shared library)
+make -f build/Makefile.macos exe                # Build only dynsim (executable)
+make -f build/Makefile.macos clean              # Remove build artifacts
+make -f build/Makefile.macos check-deps         # Verify dependencies
+make -f build/Makefile.macos help               # Show help
 
-make -f Makefile.macos BLAS=accelerate    # Use Apple Accelerate instead of OpenBLAS
-make -f Makefile.macos FC=gfortran-15     # Use a versioned Homebrew gfortran
+make -f build/Makefile.macos BLAS=accelerate    # Use Apple Accelerate instead of OpenBLAS
+make -f build/Makefile.macos FC=gfortran-15     # Use a versioned Homebrew gfortran
 ```
 
 Two guards stop the build early with an explanatory message: the kit is arm64,
@@ -249,19 +252,19 @@ Release_gnu_m/dynsim      # Standalone executable
 
 ### Building on Windows (MinGW / gfortran)
 
-`Makefile.windows` is the free-toolchain Windows route and is independent of the
+`build/Makefile.windows` is the free-toolchain Windows route and is independent of the
 Intel Visual Studio projects — the two can coexist, writing to `Release_gnu_w/`
 and `Release_intel_w64/` respectively. Run it from the **"MSYS2 MinGW 64-bit"**
 shell; the plain MSYS shell is rejected because it produces a DLL linked to the
 `msys-2.0` runtime that CPython cannot load.
 
 ```bash
-make -f Makefile.windows               # Build both ramses.dll and dynsim.exe (default)
-make -f Makefile.windows dll           # Build only ramses.dll (shared library)
-make -f Makefile.windows exe           # Build only dynsim.exe (executable)
-make -f Makefile.windows clean         # Remove build artifacts
-make -f Makefile.windows check-deps    # Verify dependencies
-make -f Makefile.windows help          # Show help
+make -f build/Makefile.windows               # Build both ramses.dll and dynsim.exe (default)
+make -f build/Makefile.windows dll           # Build only ramses.dll (shared library)
+make -f build/Makefile.windows exe           # Build only dynsim.exe (executable)
+make -f build/Makefile.windows clean         # Remove build artifacts
+make -f build/Makefile.windows check-deps    # Verify dependencies
+make -f build/Makefile.windows help          # Show help
 ```
 
 The Windows gfortran kit ships its archive as `libramses.lib` rather than
@@ -302,7 +305,7 @@ The solution contains three projects:
 
 #### Step-by-Step Build Process
 
-1. **Open Solution**: Open `URAMSES.sln` in Microsoft Visual Studio
+1. **Open Solution**: Open `msvs/URAMSES.sln` in Microsoft Visual Studio
 2. **Verify Compiler**: Ensure Intel Fortran compiler is properly configured
 3. **Select Configuration**: Choose `Release|x64` configuration
 4. **Build**: Right-click solution → "Build Solution"
@@ -335,18 +338,18 @@ instead of printing a compiler.
 mismatch, naming both module versions:
 
 ```sh
-make -f Makefile.linux check-deps
+make -f build/Makefile.linux check-deps
 ```
 
 If your distribution's default gfortran is the wrong generation, install a
 matching one and pass it explicitly:
 
 ```sh
-make -f Makefile.linux FC=gfortran-11
+make -f build/Makefile.linux FC=gfortran-11
 ```
 
 The same information appears in the toolchain table at the top of every
-release. The Intel kit in `modules/` (used by `URAMSES.sln`) is maintained by
+release. The Intel kit in `modules/` (used by `msvs/URAMSES.sln`) is maintained by
 hand — see `modules/BUILDINFO.txt`.
 
 ## Adding Custom Models
@@ -423,17 +426,17 @@ For Windows/Intel builds, you need to manually add the model file to the Visual 
 
 - **Linux**:
   ```bash
-  make -f Makefile.linux clean all
+  make -f build/Makefile.linux clean all
   ```
 
 - **macOS**:
   ```bash
-  make -f Makefile.macos clean all
+  make -f build/Makefile.macos clean all
   ```
 
 - **Windows/MinGW**:
   ```bash
-  make -f Makefile.windows clean all
+  make -f build/Makefile.windows clean all
   ```
 
   Each Makefile will automatically compile your new model file(s) from `my_models/`.
@@ -520,16 +523,16 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 5. **New model not being compiled**
    - Ensure the model file has a `.f90` extension
    - Check that the file is in the `my_models/` directory
-   - Run `make -f Makefile.linux clean all` to force a full rebuild
+   - Run `make -f build/Makefile.linux clean all` to force a full rebuild
 
 ### macOS Issues
 
 1. **`Cannot read module file ... created by a different version of GNU Fortran`**
    - The kit's exact ABI version is in `modules_mac/BUILDINFO.txt` — see
      ["Which compiler do I need?"](#which-compiler-do-i-need)
-   - Run `make -f Makefile.macos check-deps` to see both versions side by side
+   - Run `make -f build/Makefile.macos check-deps` to see both versions side by side
    - Install a matching compiler with `brew install gcc`, then pass it explicitly
-     if Homebrew only provides a versioned binary: `make -f Makefile.macos FC=gfortran-15`
+     if Homebrew only provides a versioned binary: `make -f build/Makefile.macos FC=gfortran-15`
 
 2. **`modules_mac/ ships arm64 objects`**
    - macOS builds require Apple Silicon
@@ -537,7 +540,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 3. **OpenBLAS not found**
    - `brew install openblas` (Homebrew keeps it keg-only; the Makefile finds it
      via `brew --prefix`)
-   - Or skip it entirely with `make -f Makefile.macos BLAS=accelerate`
+   - Or skip it entirely with `make -f build/Makefile.macos BLAS=accelerate`
 
 4. **`gfortran: command not found`**
    - macOS ships no Fortran compiler: `brew install gcc`
@@ -551,7 +554,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 2. **`Cannot read module file ... created by a different version of GNU Fortran`**
    - The kit's exact ABI version is in `modules_win_gfortran/BUILDINFO.txt` — see
      ["Which compiler do I need?"](#which-compiler-do-i-need)
-   - Run `make -f Makefile.windows check-deps` to see both versions side by side
+   - Run `make -f build/Makefile.windows check-deps` to see both versions side by side
    - Update the toolchain: `pacman -Syu mingw-w64-x86_64-gcc-fortran`
 
 3. **`cannot find -lramses`**
@@ -584,7 +587,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 |---------|-------|---------------|-----------------|-----------------|
 | Compiler | gfortran | gfortran (Homebrew) | gfortran (MinGW-w64) | Intel Fortran |
 | BLAS Library | OpenBLAS | OpenBLAS or Accelerate | OpenBLAS | Intel MKL |
-| Build System | `Makefile.linux` | `Makefile.macos` | `Makefile.windows` | Visual Studio |
+| Build System | `build/Makefile.linux` | `build/Makefile.macos` | `build/Makefile.windows` | Visual Studio |
 | Output Library | `ramses.so` | `ramses.so` | `ramses.dll` | `ramses.dll` |
 | Output Executable | `dynsim` | `dynsim` | `dynsim.exe` | `dynsim.exe` |
 | Output Directory | `Release_gnu_l/` | `Release_gnu_m/` | `Release_gnu_w/` | `Release_intel_w64/` |
@@ -598,18 +601,21 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 |----------|-------------|
 | [URAMSES developer guide](https://stepss.sps-lab.org/developer/uramses/) | Building URAMSES and registering user models |
 | [PyRAMSES documentation](https://stepss.sps-lab.org/pyramses/) | Python interface that loads the compiled library |
-| [Installing the Intel oneAPI Fortran compiler.pdf](Installing%20the%20Intel%20oneAPI%20Fortran%20compiler.pdf) | Windows compiler setup (local PDF) |
+| [Intel oneAPI HPC Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html) | Windows/Intel compiler setup |
 
 For issues and questions, contact the Sustainable Power Systems Lab (SPS-L) at [info@sps-lab.org](mailto:info@sps-lab.org).
 
 ## License
 
-URAMSES is distributed under the **Apache License 2.0** — see [LICENSE.rst](LICENSE.rst). Copyright © Petros Aristidou.
+Two sets of terms apply to this repository. [LICENSE.rst](LICENSE.rst) states both in full; the short version:
 
-Note that RAMSES itself, which URAMSES links against (the pre-compiled `libramses` in `modules/` and `modules_lin/`), is **not** covered by this licence — see [NOTICE](NOTICE) for the terms applying to the RAMSES, PFC and CODEGEN components.
+- **This repository's own code** — `src/`, `my_models/`, `build/`, `msvs/`, `tools/`, and the documentation — is under the **Apache License 2.0**. Copyright © Petros Aristidou.
+- **The pre-compiled RAMSES library** shipped in `modules/`, `modules_lin/`, `modules_mac/` and `modules_win_gfortran/` is **not** Apache-licensed and **not** open source. It is the property of the University of Liège and carries separate proprietary terms: free for non-commercial teaching, academic and non-profit research use, capped at **1000 buses and 2 cores**, provided as-is. Commercial use requires a licence from the Authors.
+
+Because a URAMSES build links against RAMSES, running or redistributing that build is governed by both.
 
 ## Authors
 
 Developed and maintained by the [Sustainable Power Systems Laboratory (SPS-L)](https://sps-lab.org/) at the Cyprus University of Technology, under the direction of Dr. Petros Aristidou.
 
-RAMSES, the simulator URAMSES links against, builds on the original work of Dr. Thierry Van Cutsem (University of Liège) — see [NOTICE](NOTICE).
+RAMSES, the simulator URAMSES links against, builds on the original work of Dr. Thierry Van Cutsem (University of Liège) — see [LICENSE.rst](LICENSE.rst).
