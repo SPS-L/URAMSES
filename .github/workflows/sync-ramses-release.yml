@@ -119,12 +119,15 @@ jobs:
           cp modules_m/BUILDINFO.txt           notes/buildinfo/mac.txt
           cp modules_wg/BUILDINFO.txt  notes/buildinfo/win.txt
 
+      # Only the notes travel to the release job. The kit zips are not
+      # attached to the URAMSES release: their contents are committed to this
+      # repository by the refresh step above, so GitHub's own source archive
+      # already carries them and a copy as a release asset would be the same
+      # bytes a second time.
       - uses: actions/upload-artifact@v4
         with:
           name: release-inputs
-          path: |
-            notes/**
-            kits/*.zip
+          path: notes/**
           if-no-files-found: error
 
       - name: Commit to a sync branch
@@ -169,7 +172,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gfortran libopenblas-dev
+          sudo apt-get install -y gfortran libopenblas-dev python3-numpy
 
       - name: Check the kit against this compiler
         run: make -f build/Makefile.linux check-deps
@@ -184,6 +187,9 @@ jobs:
             echo "OK: $f ($(wc -c < "$f") bytes)"
           done
 
+      - name: Nordic regression gate
+        run: bash tools/nordic_gate.sh Release_l/dynsim . tests/baselines/nordic_baseline.npz
+
   build-macos:
     needs: [fetch]
     runs-on: macos-15  # Apple Silicon (arm64), matching the RAMSES kit
@@ -196,9 +202,15 @@ jobs:
         with:
           ref: ${{ needs.fetch.outputs.head_sha }}
 
+      # numpy is for the Nordic gate's trajectory comparator.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         run: |
           brew install gcc openblas
+          python -m pip install numpy
           # Runner images ship only versioned gfortran-NN binaries; the
           # Makefile expects plain `gfortran`.
           if ! command -v gfortran >/dev/null 2>&1; then
@@ -221,6 +233,9 @@ jobs:
             [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
             echo "OK: $f ($(wc -c < "$f") bytes)"
           done
+
+      - name: Nordic regression gate
+        run: bash tools/nordic_gate.sh Release_m/dynsim . tests/baselines/nordic_baseline.npz
 
   build-windows:
     needs: [fetch]
@@ -247,6 +262,7 @@ jobs:
             mingw-w64-x86_64-gcc-fortran
             mingw-w64-x86_64-openblas
             mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-python-numpy
 
       - name: Check the kit against this compiler
         run: make -f build/Makefile.windows check-deps
@@ -260,6 +276,9 @@ jobs:
             [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
             echo "OK: $f ($(wc -c < "$f") bytes)"
           done
+
+      - name: Nordic regression gate
+        run: bash tools/nordic_gate.sh Release_wg/dynsim.exe . tests/baselines/nordic_baseline.npz
 
   release:
     needs: [fetch, build-linux, build-macos, build-windows]
@@ -339,12 +358,14 @@ jobs:
           # this single call succeeds and both the tag and the release exist,
           # or it fails and neither does, leaving a clean retry with no
           # "tag already exists" deadlock.
+          # No asset arguments: the kits live in the tree at $HEAD_SHA, so
+          # the source archive GitHub generates for this tag already has
+          # them. Attaching the zips too would ship the same bytes twice.
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$HEAD_SHA" \
             --title "$TITLE" \
-            --notes-file release-notes.md \
-            inputs/kits/*.zip
+            --notes-file release-notes.md
           echo "published=true" >> "$GITHUB_OUTPUT"
 
       - name: Delete the sync branch

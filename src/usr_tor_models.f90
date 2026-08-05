@@ -1,24 +1,68 @@
 !> @file
-!> @brief associates the name of the torque with the actual subroutine
+!> @brief Dispatch table mapping torque/governor model names to procedure pointers
+!! @details Contains the assoc_torque_ptr subroutine, which resolves a governor or
+!!          mechanical-torque model name to the corresponding procedure pointer.
+!!          Built-in models include simplified ENTSO-E governor (ENTSOE_simp),
+!!          hydro governor (HYGOV), gas turbine (GAST), steam governor (TGOV1D /
+!!          TGOV1), and the DEGOV1 diesel governor.  DLL-supplied models are checked
+!!          first on Windows/Intel builds.  The prefix "tor_" is added automatically
+!!          when absent.
 
-!> @brief associates the name of the torque with the actual subroutine
-!> @details .
+!> @brief Map a torque/governor model name to its procedure pointer
+!! @details Prepends "tor_" to modelname if not already present, then queries
+!!          loaded DLL modules (Windows/Intel) before the built-in select-case table.
+!> @param[inout] modelname  Model name string (may be modified to add "tor_" prefix)
+!> @param[out]   tor_ptr    On exit, points to the torque subroutine for the named model
 subroutine assoc_torque_ptr(modelname,tor_ptr)
 
    use MODELING
 
    implicit none
 
-   character(len=20), intent(in):: modelname
-   procedure(torque), pointer, intent(out) :: tor_ptr
-   !external tor_DEGOV1
+   character(len=20), intent(inout):: modelname    !< model name; "tor_" prefix added if absent
+   character(len=24):: modelname4                  !< internal name with guaranteed "tor_" prefix
+   procedure(torque), pointer, intent(out) :: tor_ptr  !< procedure pointer set to the matched torque model
+   external :: tor_ENTSOE_simp, tor_DEGOV1
+   external :: tor_hygov, tor_GAST, tor_TGOV1D
+   integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
+   integer i, ret
+#if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
+   integer(BOOL) :: free_status
+#endif
 
-   select case (modelname)
+   if(modelname(1:4)=='tor_')then
+      modelname4=modelname
+   else
+      modelname4='tor_'//modelname
+   endif
 
+#if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
+   do i=1,dll_handleno
+      if (dll_handle(i) .ne. NULL) then
+         p_USERFUNC = GetProcAddress (hModule=dll_handle(i), lpProcName=trim(modelname4)//C_NULL_CHAR)
+         if (p_USERFUNC .ne. NULL) then
+            call C_F_PROCPOINTER (TRANSFER(p_USERFUNC, C_NULL_FUNPTR), tor_ptr)
+            return
+         endif
+      endif
+   enddo
+#endif
 
-      !case('DEGOV1')
-      !   tor_ptr => tor_DEGOV1
-         
+   select case (modelname4)
+   case('tor_ENTSOE_simp')
+         tor_ptr=>tor_ENTSOE_simp
+
+   !case('tor_sultan')
+   !      tor_ptr=>tor_sultan  
+   case('tor_HYGOV')
+         tor_ptr=>tor_hygov
+   case('tor_GAST')
+         tor_ptr=>tor_GAST
+   case('tor_TGOV1')
+         tor_ptr=>tor_TGOV1D
+   case('tor_DEGOV1')
+         tor_ptr=>tor_DEGOV1
+
    end select
 
 end subroutine assoc_torque_ptr

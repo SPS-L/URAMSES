@@ -236,9 +236,9 @@ clean:
 # File dependencies
 # ============================================================================
 
-# FUNCTIONS_IN_MODELS must be compiled before model files that use it
-$(OBJ_DIR)/exc_ENTSOE_lim.o: $(OBJ_DIR)/FUNCTIONS_IN_MODELS.o
-$(OBJ_DIR)/inj_AIR_COND1_mod.o: $(OBJ_DIR)/FUNCTIONS_IN_MODELS.o
+# FUNCTIONS_IN_MODELS is not built here: it comes from the kit, both as
+# $(MOD_DIR)/functions_in_models.mod for compiling and inside libramses.a for
+# linking. Compiling a local copy would collide with the archive's.
 
 # usr_*_models files depend on their respective model files
 $(OBJ_DIR)/usr_exc_models.o: $(OBJ_DIR)/exc_ENTSOE_lim.o

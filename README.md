@@ -151,7 +151,6 @@ URAMSES/
 ├── src/                        # Framework sources (all platforms)
 │   ├── c_interface.f90         # C interface for Python integration
 │   ├── main.f90                # Main entry point (executable only)
-│   ├── FUNCTIONS_IN_MODELS.f90 # Helper functions for models
 │   ├── usr_exc_models.f90      # Exciter model associations
 │   ├── usr_inj_models.f90      # Injector model associations
 │   ├── usr_tor_models.f90      # Torque model associations
@@ -183,7 +182,9 @@ URAMSES/
 │       ├── dllramses.vfproj    # DLL project, ramses.dll
 │       ├── exeramses.vfproj    # Executable project, dynsim.exe
 │       └── MDL.vfproj          # Model library project, ramsesmdl.dll
-├── tools/                      # Kit-verification and release helper scripts
+├── examples/Nordic/            # Regression case used by the CI gate
+├── tests/baselines/            # Reference trajectory for that case
+├── tools/                      # Kit-verification, gate and release scripts
 ├── Release_l/                  # Compiled output (Linux)
 ├── Release_m/                  # Compiled output (macOS)
 ├── Release_wg/                 # Compiled output (Windows/MinGW)
@@ -382,45 +383,39 @@ Place your generated `.f90` model files (created by CODEGEN) into the `custom_mo
 
 Edit the appropriate association file in `src/` to register your models. This tells RAMSES which subroutine to call for your model.
 
+These five files already register the models the pre-compiled RAMSES library
+provides, so standard cases run without any edit. You add your own alongside
+them, in two places: an `external` declaration near the top, and a `case` arm
+in the `select case` block.
+
 **For Exciters** (`src/usr_exc_models.f90`):
 ```fortran
-select case (modelname)
-   case('YOUR_MODEL_NAME')
-      exc_ptr => your_model_subroutine
+   external :: exc_MYMODEL          ! with the other declarations
+
+select case (modelname4)
+   case('exc_MYMODEL')
+      exc_ptr => exc_MYMODEL
 end select
 ```
 
-**For Injectors** (`src/usr_inj_models.f90`):
-```fortran
-select case (modelname)
-   case('YOUR_MODEL_NAME')
-      inj_ptr => your_model_subroutine
-end select
-```
+The other four follow the same shape, with `inj_`, `tor_`, `twop_` and `dctl_`
+in place of `exc_`:
 
-**For Torque Models** (`src/usr_tor_models.f90`):
-```fortran
-select case (modelname)
-   case('YOUR_MODEL_NAME')
-      tor_ptr => your_model_subroutine
-end select
-```
+| File | Selects on | Label | Pointer |
+|---|---|---|---|
+| `src/usr_exc_models.f90` | `modelname4` | `case('exc_MYMODEL')` | `exc_ptr` |
+| `src/usr_inj_models.f90` | `modelname4` | `case('inj_MYMODEL')` | `inj_ptr` |
+| `src/usr_tor_models.f90` | `modelname4` | `case('tor_MYMODEL')` | `tor_ptr` |
+| `src/usr_twop_models.f90` | `modelname5` | `case('twop_MYMODEL')` | `twop_ptr` |
+| `src/usr_dctl_models.f90` | `modelname5` | `case('dctl_MYMODEL')` | `dctl_ptr` |
 
-**For Two-port Models** (`src/usr_twop_models.f90`):
-```fortran
-select case (modelname)
-   case('YOUR_MODEL_NAME')
-      twop_ptr => your_model_subroutine
-end select
-```
+**Use the prefixed form in the `case` label.** Each router prepends its own
+prefix to the name when it is absent and then selects on the prefixed string,
+so `case('MYMODEL')` compiles but never matches. Your `.dat` file may write
+the name either way.
 
-**For Discrete Control Models** (`src/usr_dctl_models.f90`):
-```fortran
-select case (modelname)
-   case('YOUR_MODEL_NAME')
-      dctl_ptr => your_model_subroutine
-end select
-```
+`exc_ENTSOE_lim` in `src/usr_exc_models.f90` is a worked example: it is a
+model from `custom_models/`, registered next to the pre-compiled ones.
 
 **Important**: The `modelname` in the `case` statement must match exactly the name used in your simulation case files.
 
@@ -638,7 +633,7 @@ For issues and questions, contact the Sustainable Power Systems Lab (SPS-L) at [
 
 Two sets of terms apply to this repository. [LICENSE.rst](LICENSE.rst) states both in full; the short version:
 
-- **This repository's own code** (`src/`, `custom_models/`, `build/`, `build/msvs/`, `tools/`, and the documentation) is under the **Apache License 2.0**. Copyright © Petros Aristidou.
+- **This repository's own code** (`src/`, `custom_models/`, `build/`, `build/msvs/`, `tools/`, `examples/`, `tests/`, and the documentation) is under the **Apache License 2.0**. Copyright © Petros Aristidou.
 - **The pre-compiled RAMSES library** shipped in `modules_wi/`, `modules_l/`, `modules_m/` and `modules_wg/` is **not** Apache-licensed and **not** open source. It is the property of the University of Liège and carries separate proprietary terms: free for non-commercial teaching, academic and non-profit research use, capped at **1000 buses and 2 cores**, provided as-is. Commercial use requires a licence from the Authors.
 
 Because a URAMSES build links against RAMSES, running or redistributing that build is governed by both.

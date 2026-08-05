@@ -48,10 +48,14 @@ cat <<'EOF'
 ## Toolchain and kit provenance
 
 The `modules_*/` directories in this release ship pre-compiled RAMSES
-libraries and `.mod` files. A `.mod` file can only be read by the gfortran
-generation that wrote it, so to add your own Fortran models you need a
-compiler emitting the same module ABI version as your platform's kit.
-`make -f <makefile> check-deps` verifies this before building.
+libraries and `.mod` files. They are committed to the repository, so the
+**Source code** archive below (or a clone checked out at this tag) is the
+whole release; there are no separate kit downloads to fetch and unpack.
+
+A `.mod` file can only be read by the gfortran generation that wrote it, so
+to add your own Fortran models you need a compiler emitting the same module
+ABI version as your platform's kit. `make -f <makefile> check-deps` verifies
+this before building.
 
 EOF
 

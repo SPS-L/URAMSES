@@ -93,6 +93,50 @@ bash tools/test_refresh_kit.sh
 bash tools/test_render_release_notes.sh
 ```
 
+## The model routers come from RAMSES
+
+`src/usr_*_models.f90` are the five model routers, and they are **copies of
+`stepss-ramses/src/devices/usr_*_models.f90`**, not independent files. The
+linker prefers an explicitly-listed object over an archive member, so these
+shadow the copies inside `libramses.a`: whatever they do not register becomes
+unreachable, however many models the kit actually contains.
+
+They were once stripped to empty templates (every `case` commented out), which
+left a URAMSES build able to resolve exactly one model, `VFAULT`, out of the
+~57 compiled into the kit. The dispatcher tries the router first and falls back
+to only `CONSTANT`, `1ST_ORDER`, `GENERIC1` and `GENERIC2`, so every named
+model (ST1A, AC1A, SEXS, DEGOV1, GAST, HYGOV, HVDC_*, PQ, IBG, WT3/WT4, BESS,
+GFOL/GFOR, PMU, vfd_load) was unreachable. Do not strip them again.
+
+Notes when editing:
+
+- Match the **prefixed** name: the routers normalise a model name by
+  prepending `exc_`/`inj_`/`tor_`/`twop_`/`dctl_` when absent, then select on
+  that, so the label is `case('inj_vfd_load')`.
+- Register models from `custom_models/` alongside the pre-compiled ones, as
+  `exc_ENTSOE_lim` is in `usr_exc_models.f90`. Do not register a model the kit
+  already exports, or the link fails on a duplicate symbol.
+- These routers carry a deliberately narrower model list than the RAMSES
+  originals. Re-copying those files wholesale reintroduces entries that were
+  removed on purpose; diff before replacing.
+- `FUNCTIONS_IN_MODELS` is **not** built here. It comes from the kit, as
+  `modules_<plat>/functions_in_models.mod` to compile against and inside
+  `libramses.a` to link against. A local copy collides with the archive's the
+  moment anything pulls that member in.
+
+## Regression gate
+
+`tools/nordic_gate.sh` runs the Nordic voltage-collapse case through `dynsim`
+and compares the trajectory against `tests/baselines/nordic_baseline.npz`, the
+baseline generated in stepss-ramses. The case does not touch `custom_models/`,
+so a correct build matches it exactly. All three gfortran jobs in the sync
+workflow run it after building; it needs numpy on the runner.
+
+```sh
+make -f build/Makefile.linux all
+bash tools/nordic_gate.sh Release_l/dynsim . tests/baselines/nordic_baseline.npz
+```
+
 ## Architecture
 
 **Build dependency chain:**
@@ -103,8 +147,9 @@ main.f90 → c_interface.f90 → usr_*_models.f90 → custom_models/*.f90 + FUNC
 ```
 
 **Key directories:**
-- `src/`: framework code (C interface, model routers, utility functions, main entry point)
+- `src/`: framework code (C interface, model routers, main entry point)
 - `custom_models/`: user model implementations (auto-discovered by every Makefile build)
+- `examples/Nordic/`, `tests/baselines/`: the regression case and baseline behind `tools/nordic_gate.sh`
 - `build/`: the three Makefiles, plus `build/msvs/` for the Visual Studio route
 - `modules_l/`: pre-compiled RAMSES library and `.mod` files (Linux/gfortran)
 - `modules_m/`: pre-compiled RAMSES library and `.mod` files (macOS arm64/gfortran)
