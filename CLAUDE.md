@@ -36,9 +36,11 @@ Constraints worth knowing before editing these files:
 - macOS uses `ramses.so`, **not** `ramses.dylib` — PyRAMSES separates platforms
   by the `libs/lin`, `libs/mac`, `libs/win` folder, not by filename.
 - `modules_mac/` is arm64; macOS builds require Apple Silicon.
-- `modules_mac/` and `modules_win_gfortran/` are GFORTRAN module version 16
-  (gfortran 15+); `modules_lin/` is version 15. Each `check-deps` compares the
-  local compiler against the kit and fails early on a mismatch.
+- Each kit's GFORTRAN module ABI version is recorded in its
+  `modules_<plat>/BUILDINFO.txt` (see the README's "Which compiler do I need?"
+  section) rather than hardcoded here — it changes whenever RAMSES bumps a
+  runner's compiler. Each `check-deps` compares the local compiler against the
+  kit and fails early on a mismatch.
 - The Windows gfortran kit ships `libramses.lib`, which MinGW's linker does not
   probe for `-lramses`, so `Makefile.windows` passes it by explicit path.
 - `FC` is assigned with `=` not `?=` in all three: make predefines `FC` as `f77`,

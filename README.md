@@ -18,11 +18,11 @@ URAMSES lets you compile your own Fortran device models and link them against a 
 **Requirements:** gfortran and OpenBLAS (Linux, macOS, Windows/MinGW); or Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows/Intel). To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
 
 > **gfortran version must match the kit.** Fortran `.mod` files are readable only
-> by the gfortran release that wrote them. The `modules_mac/` and
-> `modules_win_gfortran/` kits are built with **GFORTRAN module version 16**
-> (gfortran 15 or newer); `modules_lin/` uses **module version 15** (gfortran 13
-> or 14). Each Makefile's `check-deps` target compares your compiler against the
-> kit and reports a mismatch before the build starts.
+> by the gfortran release that wrote them. Each kit's exact ABI version is
+> recorded in its `BUILDINFO.txt` — see ["Which compiler do I
+> need?"](#which-compiler-do-i-need) below. Each Makefile's `check-deps` target
+> compares your compiler against the kit and reports a mismatch before the
+> build starts.
 
 ### Linux
 
@@ -525,7 +525,8 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 ### macOS Issues
 
 1. **`Cannot read module file ... created by a different version of GNU Fortran`**
-   - The `modules_mac/` kit is built with GFORTRAN module version 16 (gfortran 15+)
+   - The kit's exact ABI version is in `modules_mac/BUILDINFO.txt` — see
+     ["Which compiler do I need?"](#which-compiler-do-i-need)
    - Run `make -f Makefile.macos check-deps` to see both versions side by side
    - Install a matching compiler with `brew install gcc`, then pass it explicitly
      if Homebrew only provides a versioned binary: `make -f Makefile.macos FC=gfortran-15`
@@ -548,7 +549,9 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
      `msys-2.0` runtime and produces a DLL that CPython cannot load
 
 2. **`Cannot read module file ... created by a different version of GNU Fortran`**
-   - The `modules_win_gfortran/` kit needs gfortran 15+ (module version 16)
+   - The kit's exact ABI version is in `modules_win_gfortran/BUILDINFO.txt` — see
+     ["Which compiler do I need?"](#which-compiler-do-i-need)
+   - Run `make -f Makefile.windows check-deps` to see both versions side by side
    - Update the toolchain: `pacman -Syu mingw-w64-x86_64-gcc-fortran`
 
 3. **`cannot find -lramses`**
