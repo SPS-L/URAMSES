@@ -1,0 +1,438 @@
+name: sync-ramses-release
+
+# Fired by stepss-ramses when it publishes a release. Refreshes the three
+# gfortran module kits, proves they compile on every route, and only then
+# moves master and cuts a matching URAMSES release.
+on:
+  repository_dispatch:
+    types: [ramses-release]
+
+permissions:
+  contents: read
+
+# Two RAMSES releases in quick succession must not race for master.
+concurrency:
+  group: ramses-sync
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+      branch: ${{ steps.commit.outputs.branch }}
+      head_sha: ${{ steps.commit.outputs.head_sha }}
+      base_sha: ${{ steps.commit.outputs.base_sha }}
+    steps:
+      # The payload is untrusted input: validate its shape, and never let it
+      # reach a run: script except through env.
+      - name: Validate dispatch payload
+        id: vars
+        env:
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          # Validate the tag as a single whole string before anything is
+          # written to $GITHUB_OUTPUT. `grep -z` treats the entire input
+          # (embedded newlines included) as one record, so ^...$ must match
+          # start-to-end of the whole value. A line-oriented check here (a
+          # bare `case` glob, or grep without -z) would let a value like
+          # $'v3.51\ntag=EVIL' through: `*` matches newlines in a shell
+          # glob, and ^/$ in plain grep match per line, not per string.
+          if ! printf '%s' "$TAG" | grep -qzE '^v[0-9][0-9A-Za-z.+-]*$'; then
+            echo "FAIL: refusing dispatch tag: it must match ^v[0-9][0-9A-Za-z.+-]*\$ as a single line, with no embedded newlines"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Syncing RAMSES $TAG"
+
+      - uses: actions/checkout@v4
+        with:
+          # repository_dispatch freezes github.sha to the default branch's
+          # tip at dispatch time, and a concurrency-queued or re-run job
+          # replays that same stale value. Naming the branch instead makes
+          # every execution of this step (first run, re-run, or a run stuck
+          # queued behind another) resolve master as it stands right now.
+          ref: master
+          fetch-depth: 0
+
+      - name: Refuse to re-release an existing tag
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "FAIL: tag $TAG already exists in stepss-uramses"
+            exit 1
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "FAIL: release $TAG already exists in stepss-uramses"
+            exit 1
+          fi
+          echo "OK: $TAG is free"
+
+      - name: Download the RAMSES kits
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+          GH_TOKEN: ${{ secrets.RAMSES_READ_TOKEN }}
+        run: |
+          mkdir -p kits
+          gh release download "$TAG" \
+            --repo SPS-L/stepss-ramses \
+            --pattern 'uramses-modules_*.zip' \
+            --dir kits
+          ls -l kits
+          for f in uramses-modules_lin-"$TAG".zip \
+                   uramses-modules_mac-"$TAG".zip \
+                   uramses-modules_win_gfortran-"$TAG".zip; do
+            [ -f "kits/$f" ] || { echo "FAIL: RAMSES $TAG has no $f"; exit 1; }
+          done
+
+      - name: Capture the RAMSES release title and body
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+          GH_TOKEN: ${{ secrets.RAMSES_READ_TOKEN }}
+        run: |
+          mkdir -p notes
+          # Read under our own token rather than trusting the dispatch payload.
+          gh release view "$TAG" --repo SPS-L/stepss-ramses --json body -q .body > notes/body.md
+          gh release view "$TAG" --repo SPS-L/stepss-ramses --json name -q .name > notes/title.txt
+          echo "Title: $(cat notes/title.txt)"
+
+      - name: Refresh the three kits
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+        run: |
+          bash tools/refresh_kit.sh "kits/uramses-modules_lin-$TAG.zip" \
+            modules_lin libramses.a "$TAG"
+          bash tools/refresh_kit.sh "kits/uramses-modules_mac-$TAG.zip" \
+            modules_mac libramses.a "$TAG"
+          bash tools/refresh_kit.sh "kits/uramses-modules_win_gfortran-$TAG.zip" \
+            modules_win_gfortran libramses.lib "$TAG"
+
+      - name: Stash the kit metadata for the release job
+        run: |
+          mkdir -p notes/buildinfo
+          cp modules_lin/BUILDINFO.txt           notes/buildinfo/lin.txt
+          cp modules_mac/BUILDINFO.txt           notes/buildinfo/mac.txt
+          cp modules_win_gfortran/BUILDINFO.txt  notes/buildinfo/win.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-inputs
+          path: |
+            notes/**
+            kits/*.zip
+          if-no-files-found: error
+
+      - name: Commit to a sync branch
+        id: commit
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+        run: |
+          BRANCH="sync/ramses-$TAG"
+          BASE_SHA="$(git rev-parse HEAD)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          # -A stages deletions too, which is how modules dropped by this
+          # RAMSES release leave the tree.
+          git add -A modules_lin modules_mac modules_win_gfortran
+          git status --short
+          # BUILDINFO.txt carries the tag, commit and timestamp, so there is
+          # always a diff; --allow-empty covers the degenerate case anyway so
+          # the tag always has a commit to point at.
+          git commit --allow-empty \
+            -m "Update module kits to the RAMSES $TAG gfortran builds"
+          git push origin "$BRANCH"
+          echo "branch=$BRANCH"                    >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(git rev-parse HEAD)"    >> "$GITHUB_OUTPUT"
+          echo "base_sha=$BASE_SHA"                >> "$GITHUB_OUTPUT"
+
+  # The three build jobs pin the same runner images stepss-ramses builds on.
+  # A .mod is readable only by the gfortran generation that wrote it, so
+  # ubuntu-latest here would pair an ABI-16 compiler with the ABI-15 kit.
+  build-linux:
+    needs: [fetch]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      # Pinned to the exact commit the release job will publish, not the
+      # mutable branch head, so the tree that was built is provably the
+      # tree that ships.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.fetch.outputs.head_sha }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran libopenblas-dev
+
+      - name: Check the kit against this compiler
+        run: make -f Makefile.linux check-deps
+
+      - name: Build
+        run: make -f Makefile.linux clean all
+
+      - name: Assert build outputs
+        run: |
+          for f in Release_gnu_l/ramses.so Release_gnu_l/dynsim; do
+            [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+  build-macos:
+    needs: [fetch]
+    runs-on: macos-15  # Apple Silicon (arm64), matching the RAMSES kit
+    timeout-minutes: 45
+    steps:
+      # Pinned to the exact commit the release job will publish, not the
+      # mutable branch head, so the tree that was built is provably the
+      # tree that ships.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.fetch.outputs.head_sha }}
+
+      - name: Install dependencies
+        run: |
+          brew install gcc openblas
+          # Runner images ship only versioned gfortran-NN binaries; the
+          # Makefile expects plain `gfortran`.
+          if ! command -v gfortran >/dev/null 2>&1; then
+            latest="$(/bin/ls "$(brew --prefix)"/bin/gfortran-* 2>/dev/null | sort -V | tail -n1)"
+            [ -n "$latest" ] || { echo "FAIL: no gfortran found"; exit 1; }
+            sudo mkdir -p /usr/local/bin
+            sudo ln -sf "$latest" /usr/local/bin/gfortran
+          fi
+          gfortran --version | head -n1
+
+      - name: Check the kit against this compiler
+        run: make -f Makefile.macos check-deps
+
+      - name: Build
+        run: make -f Makefile.macos clean all
+
+      - name: Assert build outputs
+        run: |
+          for f in Release_gnu_m/ramses.so Release_gnu_m/dynsim; do
+            [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+  build-windows:
+    needs: [fetch]
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      # Pinned to the exact commit the release job will publish, not the
+      # mutable branch head, so the tree that was built is provably the
+      # tree that ships.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.fetch.outputs.head_sha }}
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            make
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-openblas
+            mingw-w64-x86_64-pkgconf
+
+      - name: Check the kit against this compiler
+        run: make -f Makefile.windows check-deps
+
+      - name: Build
+        run: make -f Makefile.windows clean all
+
+      - name: Assert build outputs
+        run: |
+          for f in Release_gnu_w/ramses.dll Release_gnu_w/dynsim.exe; do
+            [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+  release:
+    needs: [fetch, build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    outputs:
+      # Consumed only by report-failure, so it can say precisely how far a
+      # failed run got instead of guessing.
+      master_moved: ${{ steps.ff.outputs.moved }}
+      release_published: ${{ steps.publish.outputs.published }}
+    steps:
+      # Pinned to the exact commit being published, not the frozen
+      # dispatch-time github.sha -- fix #3 made fetch resolve master at run
+      # time, so a queued or re-run job can now legitimately see a different
+      # master than the one it built from. render_release_notes.sh must run
+      # from the tree that was actually built, not whatever tools/ happens
+      # to look like on master right now. fetch-depth: 0 is kept so
+      # `git fetch origin master` and the HEAD_SHA object are both available
+      # for the fast-forward and tag/release steps below.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.fetch.outputs.head_sha }}
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-inputs
+          path: inputs
+
+      - name: Fast-forward master
+        id: ff
+        env:
+          HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
+          BASE_SHA: ${{ needs.fetch.outputs.base_sha }}
+        run: |
+          git fetch origin master
+          CURRENT="$(git rev-parse origin/master)"
+          if [ "$CURRENT" != "$BASE_SHA" ]; then
+            echo "FAIL: master moved from $BASE_SHA to $CURRENT while the kits were building."
+            echo "Rebasing would publish a tree that was never built. This guard only"
+            echo "catches a change happening during THIS run -- fetch resolves master"
+            echo "at run time on every attempt, so use 'Re-run all jobs' (not 'Re-run"
+            echo "failed jobs') to retry from the current state. Delete the leftover"
+            echo "sync/ramses-\$TAG branch first, or the re-run's own push to it will"
+            echo "be a non-fast-forward and fetch will die on that instead."
+            exit 1
+          fi
+          # Rejected by the server if it is not a fast-forward.
+          git push origin "$HEAD_SHA:refs/heads/master"
+          echo "OK: master is now $HEAD_SHA"
+          echo "moved=true" >> "$GITHUB_OUTPUT"
+
+      - name: Render the release notes
+        run: |
+          bash tools/render_release_notes.sh \
+            inputs/notes/body.md \
+            inputs/notes/buildinfo/lin.txt \
+            inputs/notes/buildinfo/mac.txt \
+            inputs/notes/buildinfo/win.txt > release-notes.md
+          cat release-notes.md
+
+      - name: Publish the release
+        id: publish
+        env:
+          TAG: ${{ needs.fetch.outputs.tag }}
+          HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="$(cat inputs/notes/title.txt)"
+          [ -n "$TITLE" ] || TITLE="URAMSES $TAG"
+          # --target creates the tag from HEAD_SHA as part of publishing the
+          # release, instead of a separate `git tag` + `git push` beforehand.
+          # That collapses what used to be two points of no return (a tag
+          # pushed, then a release call that might fail) into one: either
+          # this single call succeeds and both the tag and the release exist,
+          # or it fails and neither does, leaving a clean retry with no
+          # "tag already exists" deadlock.
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$HEAD_SHA" \
+            --title "$TITLE" \
+            --notes-file release-notes.md \
+            inputs/kits/*.zip
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Delete the sync branch
+        env:
+          BRANCH: ${{ needs.fetch.outputs.branch }}
+        run: git push origin --delete "$BRANCH"
+
+  report-failure:
+    needs: [fetch, build-linux, build-macos, build-windows, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    steps:
+      - name: File or update an issue
+        env:
+          # The validated tag, when the fetch job got far enough to produce
+          # one. Never trust the raw payload for anything that reaches this
+          # public issue -- it is exactly the value that failed validation
+          # on the path where fetch did not get that far.
+          VALIDATED_TAG: ${{ needs.fetch.outputs.tag }}
+          RAW_TAG: ${{ github.event.client_payload.tag }}
+          MASTER_MOVED: ${{ needs.release.outputs.master_moved }}
+          RELEASE_PUBLISHED: ${{ needs.release.outputs.release_published }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="$VALIDATED_TAG"
+          if [ -z "$TAG" ]; then
+            # Validation itself is what failed, so the raw payload is still
+            # untrusted free text at this point: strip everything outside
+            # the tag charset and clamp the length before it can reach a
+            # public issue as Markdown, a link, or an @mention.
+            TAG="$(printf '%s' "$RAW_TAG" | tr -cd 'A-Za-z0-9.+-' | cut -c1-80)"
+            [ -n "$TAG" ] || TAG="(unknown)"
+          fi
+
+          # Say how far the run actually got: a human deciding whether it is
+          # safe to touch master needs to know this, and it is exactly wrong
+          # for any failure after the fast-forward.
+          if [ "$RELEASE_PUBLISHED" = "true" ]; then
+            STATE="\`master\` WAS fast-forwarded and the \`$TAG\` release WAS published; a later step failed (for example, deleting the sync branch). Check the run before assuming anything needs redoing."
+          elif [ "$MASTER_MOVED" = "true" ]; then
+            STATE="\`master\` WAS fast-forwarded to the new commit, but no release was published. Check whether \`$TAG\` needs to be created by hand before retrying."
+          else
+            STATE="\`master\` was NOT moved and no release was created."
+          fi
+
+          TITLE="RAMSES $TAG: kit sync failed"
+          # `<<-EOF` strips leading TAB characters from a heredoc body: the
+          # lines below carry only a single literal tab (for readability in
+          # this YAML file) past the mandatory YAML block-scalar indentation,
+          # so the tab is all `<<-` has to remove and $BODY ends up flush
+          # left regardless of how much this step is indented. CommonMark
+          # treats a block indented 4+ spaces after a blank line as an
+          # indented code block, which would otherwise leave the run link
+          # unclickable, backticks showing literally, and the retry
+          # instructions inside a grey box.
+          BODY="$(cat <<-EOF
+          	The sync-ramses-release workflow failed for RAMSES \`$TAG\`.
+
+          	Run: $RUN_URL
+
+          	$STATE
+
+          	The sync branch \`sync/ramses-$TAG\` is left in place for inspection;
+          	delete it once the cause is fixed and re-run the workflow (Re-run all
+          	jobs, not just the failed ones) from the Actions UI.
+          	EOF
+          )"
+          # `in:title` search is word-based, not exact, so a search for
+          # "v3.51" can match an open issue titled for "v3.52" and stack two
+          # unrelated tags' failures onto the same issue. Fetch titles and
+          # compare exactly instead.
+          EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --json number,title \
+            | jq -r --arg t "$TITLE" '.[] | select(.title == $t) | .number' | head -n1)"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+            echo "Commented on existing issue #$EXISTING"
+          else
+            # A missing 'ci' label must not silence the one notification a
+            # failed release run produces.
+            if ! gh issue create --repo "$GITHUB_REPOSITORY" \
+                  --title "$TITLE" --body "$BODY" --label ci; then
+              echo "WARN: creating the issue with the 'ci' label failed (it may not exist yet); filing without a label"
+              gh issue create --repo "$GITHUB_REPOSITORY" \
+                --title "$TITLE" --body "$BODY"
+            fi
+            echo "Opened a new issue"
+          fi

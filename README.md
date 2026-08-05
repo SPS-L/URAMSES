@@ -18,11 +18,11 @@ URAMSES lets you compile your own Fortran device models and link them against a 
 **Requirements:** gfortran and OpenBLAS (Linux, macOS, Windows/MinGW); or Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows/Intel). To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
 
 > **gfortran version must match the kit.** Fortran `.mod` files are readable only
-> by the gfortran release that wrote them. The `modules_mac/` and
-> `modules_win_gfortran/` kits are built with **GFORTRAN module version 16**
-> (gfortran 15 or newer); `modules_lin/` uses **module version 15** (gfortran 13
-> or 14). Each Makefile's `check-deps` target compares your compiler against the
-> kit and reports a mismatch before the build starts.
+> by the gfortran release that wrote them. Each kit's exact ABI version is
+> recorded in its `BUILDINFO.txt` — see ["Which compiler do I
+> need?"](#which-compiler-do-i-need) below. Each Makefile's `check-deps` target
+> compares your compiler against the kit and reports a mismatch before the
+> build starts.
 
 ### Linux
 
@@ -313,6 +313,42 @@ All compiled files will be created in `Release_intel_w64/`:
 - `ramses.dll` - For PyRAMSES/STEPSS integration
 - `dynsim.exe` - Standalone executable
 
+## Which compiler do I need?
+
+The `modules_*/` directories ship RAMSES pre-compiled. A gfortran `.mod` file
+can only be read by the compiler generation that wrote it, so building your
+own models needs a gfortran matching the kit for your platform.
+
+Each kit records exactly what built it:
+
+```sh
+cat modules_lin/BUILDINFO.txt          # Linux
+cat modules_mac/BUILDINFO.txt          # macOS arm64
+cat modules_win_gfortran/BUILDINFO.txt # Windows MinGW
+```
+
+These files appear once the kit-sync CI has refreshed a kit at least once;
+until then `check-deps` reports the kit as predating provenance tracking
+instead of printing a compiler.
+
+`check-deps` compares your compiler against the kit and fails early on a
+mismatch, naming both module versions:
+
+```sh
+make -f Makefile.linux check-deps
+```
+
+If your distribution's default gfortran is the wrong generation, install a
+matching one and pass it explicitly:
+
+```sh
+make -f Makefile.linux FC=gfortran-11
+```
+
+The same information appears in the toolchain table at the top of every
+release. The Intel kit in `modules/` (used by `URAMSES.sln`) is maintained by
+hand — see `modules/BUILDINFO.txt`.
+
 ## Adding Custom Models
 
 ### Step-by-Step Process
@@ -489,7 +525,8 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 ### macOS Issues
 
 1. **`Cannot read module file ... created by a different version of GNU Fortran`**
-   - The `modules_mac/` kit is built with GFORTRAN module version 16 (gfortran 15+)
+   - The kit's exact ABI version is in `modules_mac/BUILDINFO.txt` — see
+     ["Which compiler do I need?"](#which-compiler-do-i-need)
    - Run `make -f Makefile.macos check-deps` to see both versions side by side
    - Install a matching compiler with `brew install gcc`, then pass it explicitly
      if Homebrew only provides a versioned binary: `make -f Makefile.macos FC=gfortran-15`
@@ -512,7 +549,9 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
      `msys-2.0` runtime and produces a DLL that CPython cannot load
 
 2. **`Cannot read module file ... created by a different version of GNU Fortran`**
-   - The `modules_win_gfortran/` kit needs gfortran 15+ (module version 16)
+   - The kit's exact ABI version is in `modules_win_gfortran/BUILDINFO.txt` — see
+     ["Which compiler do I need?"](#which-compiler-do-i-need)
+   - Run `make -f Makefile.windows check-deps` to see both versions side by side
    - Update the toolchain: `pacman -Syu mingw-w64-x86_64-gcc-fortran`
 
 3. **`cannot find -lramses`**
