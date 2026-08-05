@@ -20,7 +20,7 @@ Output goes to `Release_gnu_l/`.
 
 ## Build Commands (macOS and Windows/MinGW)
 
-`Makefile.macos` and `Makefile.mingw` mirror `Makefile.linux` — same targets
+`Makefile.macos` and `Makefile.windows` mirror `Makefile.linux` — same targets
 (`all`/`dll`/`exe`/`clean`/`check-deps`/`help`), same wildcard model discovery —
 and differ only in the module directory, output directory, and library naming:
 
@@ -28,7 +28,7 @@ and differ only in the module directory, output directory, and library naming:
 |---|---|---|---|---|
 | Linux | `Makefile.linux` | `modules_lin/` (`libramses.a`) | `Release_gnu_l/` | `ramses.so` |
 | macOS arm64 | `Makefile.macos` | `modules_mac/` (`libramses.a`) | `Release_gnu_m/` | `ramses.so` |
-| Windows MinGW | `Makefile.mingw` | `modules_win_gfortran/` (`libramses.lib`) | `Release_gnu_w/` | `ramses.dll` |
+| Windows MinGW | `Makefile.windows` | `modules_win_gfortran/` (`libramses.lib`) | `Release_gnu_w/` | `ramses.dll` |
 | Windows Intel | `URAMSES.sln` | `modules/` (`libramses.lib`) | `Release_intel_w64/` | `ramses.dll` |
 
 Constraints worth knowing before editing these files:
@@ -40,7 +40,7 @@ Constraints worth knowing before editing these files:
   (gfortran 15+); `modules_lin/` is version 15. Each `check-deps` compares the
   local compiler against the kit and fails early on a mismatch.
 - The Windows gfortran kit ships `libramses.lib`, which MinGW's linker does not
-  probe for `-lramses`, so `Makefile.mingw` passes it by explicit path.
+  probe for `-lramses`, so `Makefile.windows` passes it by explicit path.
 - `FC` is assigned with `=` not `?=` in all three: make predefines `FC` as `f77`,
   which `?=` would leave in place. A command-line `FC=` still overrides.
 

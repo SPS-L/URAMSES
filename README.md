@@ -104,7 +104,7 @@ From the "MSYS2 MinGW 64-bit" shell:
 
 ```bash
 # Build everything (shared library + executable)
-make -f Makefile.mingw
+make -f Makefile.windows
 
 # Run standalone simulation
 ./Release_gnu_w/dynsim.exe
@@ -176,7 +176,7 @@ URAMSES/
 ├── MDL.vfproj              # Model library project - ramsesmdl.dll (Windows/Intel)
 ├── Makefile.linux          # Makefile for Linux builds
 ├── Makefile.macos          # Makefile for macOS builds (Apple Silicon)
-├── Makefile.mingw          # Makefile for Windows/MinGW builds
+├── Makefile.windows        # Makefile for Windows/MinGW builds
 ├── Release_intel_w64/      # Compiled output (Windows/Intel)
 ├── Release_gnu_w/          # Compiled output (Windows/MinGW)
 ├── Release_gnu_m/          # Compiled output (macOS)
@@ -249,19 +249,19 @@ Release_gnu_m/dynsim      # Standalone executable
 
 ### Building on Windows (MinGW / gfortran)
 
-`Makefile.mingw` is the free-toolchain Windows route and is independent of the
+`Makefile.windows` is the free-toolchain Windows route and is independent of the
 Intel Visual Studio projects — the two can coexist, writing to `Release_gnu_w/`
 and `Release_intel_w64/` respectively. Run it from the **"MSYS2 MinGW 64-bit"**
 shell; the plain MSYS shell is rejected because it produces a DLL linked to the
 `msys-2.0` runtime that CPython cannot load.
 
 ```bash
-make -f Makefile.mingw               # Build both ramses.dll and dynsim.exe (default)
-make -f Makefile.mingw dll           # Build only ramses.dll (shared library)
-make -f Makefile.mingw exe           # Build only dynsim.exe (executable)
-make -f Makefile.mingw clean         # Remove build artifacts
-make -f Makefile.mingw check-deps    # Verify dependencies
-make -f Makefile.mingw help          # Show help
+make -f Makefile.windows               # Build both ramses.dll and dynsim.exe (default)
+make -f Makefile.windows dll           # Build only ramses.dll (shared library)
+make -f Makefile.windows exe           # Build only dynsim.exe (executable)
+make -f Makefile.windows clean         # Remove build artifacts
+make -f Makefile.windows check-deps    # Verify dependencies
+make -f Makefile.windows help          # Show help
 ```
 
 The Windows gfortran kit ships its archive as `libramses.lib` rather than
@@ -397,7 +397,7 @@ For Windows/Intel builds, you need to manually add the model file to the Visual 
 
 - **Windows/MinGW**:
   ```bash
-  make -f Makefile.mingw clean all
+  make -f Makefile.windows clean all
   ```
 
   Each Makefile will automatically compile your new model file(s) from `my_models/`.
@@ -545,7 +545,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 |---------|-------|---------------|-----------------|-----------------|
 | Compiler | gfortran | gfortran (Homebrew) | gfortran (MinGW-w64) | Intel Fortran |
 | BLAS Library | OpenBLAS | OpenBLAS or Accelerate | OpenBLAS | Intel MKL |
-| Build System | `Makefile.linux` | `Makefile.macos` | `Makefile.mingw` | Visual Studio |
+| Build System | `Makefile.linux` | `Makefile.macos` | `Makefile.windows` | Visual Studio |
 | Output Library | `ramses.so` | `ramses.so` | `ramses.dll` | `ramses.dll` |
 | Output Executable | `dynsim` | `dynsim` | `dynsim.exe` | `dynsim.exe` |
 | Output Directory | `Release_gnu_l/` | `Release_gnu_m/` | `Release_gnu_w/` | `Release_intel_w64/` |

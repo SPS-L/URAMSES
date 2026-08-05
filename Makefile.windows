@@ -92,7 +92,7 @@ OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 # Detected platform. MSYS2 sets OS=Windows_NT; uname reports MINGW64_NT-* in a
 # MinGW shell and MSYS_NT-* in the plain MSYS shell. UNAME_S is a plain
 # variable so a dry run can be checked from another host, e.g.
-# "make -f Makefile.mingw UNAME_S=MINGW64_NT-10.0 -n".
+# "make -f Makefile.windows UNAME_S=MINGW64_NT-10.0 -n".
 UNAME_S := $(shell uname -s 2>/dev/null)
 
 ifneq ($(OS),Windows_NT)
@@ -127,7 +127,7 @@ help:
 	@echo "RAMSES Windows Build System (gfortran / MinGW-w64)"
 	@echo "=================================================="
 	@echo ""
-	@echo "Usage: make -f Makefile.mingw [target]"
+	@echo "Usage: make -f Makefile.windows [target]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all         - Build both ramses.dll and dynsim.exe (default)"
