@@ -92,6 +92,13 @@ automatically an ABI break. `ubuntu-22.04` → `ubuntu-24.04` (gfortran 11.4 →
 13.3) kept ABI 15. What it did move is the **glibc floor**, 2.35 → 2.39: the
 published Linux binaries no longer run on Ubuntu 22.04 or Debian 12.
 
+The three kits are not on a common ABI and never have been. As of v3.55:
+`modules_l` is gfortran 13.3 / ABI 15, while `modules_m` and `modules_wg` are
+gfortran 16.1 / ABI 16, because `macos-15` and `windows-latest` track much
+newer toolchains than any Ubuntu LTS image. Read the per-kit `BUILDINFO.txt`
+rather than assuming one number covers all three; `check_kit.sh` compares
+against the kit in hand, so it is already right about this.
+
 Helper scripts in `tools/` each have a `tools/test_*.sh` alongside them. Run
 them after any change:
 
