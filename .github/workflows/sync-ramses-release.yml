@@ -395,17 +395,33 @@ jobs:
           fi
 
           TITLE="RAMSES $TAG: kit sync failed"
-          BODY="The sync-ramses-release workflow failed for RAMSES \`$TAG\`.
+          # `<<-EOF` strips leading TAB characters from a heredoc body: the
+          # lines below carry only a single literal tab (for readability in
+          # this YAML file) past the mandatory YAML block-scalar indentation,
+          # so the tab is all `<<-` has to remove and $BODY ends up flush
+          # left regardless of how much this step is indented. CommonMark
+          # treats a block indented 4+ spaces after a blank line as an
+          # indented code block, which would otherwise leave the run link
+          # unclickable, backticks showing literally, and the retry
+          # instructions inside a grey box.
+          BODY="$(cat <<-EOF
+          	The sync-ramses-release workflow failed for RAMSES \`$TAG\`.
 
-          Run: $RUN_URL
+          	Run: $RUN_URL
 
-          $STATE
+          	$STATE
 
-          The sync branch \`sync/ramses-$TAG\` is left in place for inspection;
-          delete it once the cause is fixed and re-run the workflow (Re-run all
-          jobs, not just the failed ones) from the Actions UI."
-          EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
-            --search "$TITLE in:title" --json number -q '.[0].number')"
+          	The sync branch \`sync/ramses-$TAG\` is left in place for inspection;
+          	delete it once the cause is fixed and re-run the workflow (Re-run all
+          	jobs, not just the failed ones) from the Actions UI.
+          	EOF
+          )"
+          # `in:title` search is word-based, not exact, so a search for
+          # "v3.51" can match an open issue titled for "v3.52" and stack two
+          # unrelated tags' failures onto the same issue. Fetch titles and
+          # compare exactly instead.
+          EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --json number,title \
+            | jq -r --arg t "$TITLE" '.[] | select(.title == $t) | .number' | head -n1)"
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
             echo "Commented on existing issue #$EXISTING"
