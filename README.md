@@ -82,7 +82,7 @@ For detailed installation instructions of the Intel oneAPI Fortran compiler, ref
 
 ```bash
 # Build everything (shared library + executable)
-make -f Makefile.gfortran
+make -f Makefile.linux
 
 # Run standalone simulation
 ./Release_gnu_l/dynsim
@@ -187,7 +187,7 @@ URAMSES/
 ├── dllramses.vfproj        # DLL project - ramses.dll (Windows/Intel)
 ├── exeramses.vfproj        # Executable project - dynsim.exe (Windows/Intel)
 ├── MDL.vfproj              # Model library project - ramsesmdl.dll (Windows/Intel)
-├── Makefile.gfortran       # Makefile for Linux builds
+├── Makefile.linux       # Makefile for Linux builds
 ├── Makefile.macos          # Makefile for macOS builds (Apple Silicon)
 ├── Makefile.mingw          # Makefile for Windows/MinGW builds
 ├── docker/                 # Docker build environment
@@ -218,12 +218,12 @@ URAMSES/
 #### Makefile Targets
 
 ```bash
-make -f Makefile.gfortran            # Build both ramses.so and dynsim (default)
-make -f Makefile.gfortran dll        # Build only ramses.so (shared library)
-make -f Makefile.gfortran exe        # Build only dynsim (executable)
-make -f Makefile.gfortran clean      # Remove build artifacts
-make -f Makefile.gfortran check-deps # Verify dependencies
-make -f Makefile.gfortran help       # Show help
+make -f Makefile.linux            # Build both ramses.so and dynsim (default)
+make -f Makefile.linux dll        # Build only ramses.so (shared library)
+make -f Makefile.linux exe        # Build only dynsim (executable)
+make -f Makefile.linux clean      # Remove build artifacts
+make -f Makefile.linux check-deps # Verify dependencies
+make -f Makefile.linux help       # Show help
 ```
 
 #### Output
@@ -364,7 +364,7 @@ The compiled `ramses.so` is written to the `output/` directory on the host.
 #### How It Works
 
 - The repository root is bind-mounted into the container at `/uramses`
-- The container runs `make -f Makefile.gfortran dll` and copies the result to `/output`
+- The container runs `make -f Makefile.linux dll` and copies the result to `/output`
 - Edits to `my_models/` on the host are visible immediately — no image rebuild needed
 - Only the shared library (`ramses.so`) is built, not the standalone executable
 
@@ -449,7 +449,7 @@ For Windows/Intel builds, you need to manually add the model file to the Visual 
 
 - **Linux**:
   ```bash
-  make -f Makefile.gfortran clean all
+  make -f Makefile.linux clean all
   ```
 
 - **macOS**:
@@ -546,7 +546,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 5. **New model not being compiled**
    - Ensure the model file has a `.f90` extension
    - Check that the file is in the `my_models/` directory
-   - Run `make -f Makefile.gfortran clean all` to force a full rebuild
+   - Run `make -f Makefile.linux clean all` to force a full rebuild
 
 ### macOS Issues
 
@@ -610,7 +610,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 3. **Stale build artifacts**
    - The container bind-mounts the repo, so old object files may persist:
      ```bash
-     docker compose run --rm uramses-build make -f Makefile.gfortran clean dll
+     docker compose run --rm uramses-build make -f Makefile.linux clean dll
      ```
 
 ### Debug Tips

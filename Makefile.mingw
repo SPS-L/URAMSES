@@ -2,7 +2,7 @@
 # Makefile for RAMSES using gfortran (Windows, MinGW-w64 via MSYS2)
 # This is the free-toolchain Windows route. The Intel oneAPI route is
 # unaffected and still uses Visual Studio with URAMSES.sln.
-# For Linux use Makefile.gfortran; for macOS use Makefile.macos.
+# For Linux use Makefile.linux; for macOS use Makefile.macos.
 #
 # Run this from an "MSYS2 MinGW 64-bit" shell, not the plain MSYS shell:
 # the plain MSYS shell targets the Cygwin-like runtime and produces a DLL
@@ -97,7 +97,7 @@ UNAME_S := $(shell uname -s 2>/dev/null)
 
 ifneq ($(OS),Windows_NT)
     ifeq (,$(findstring MINGW,$(UNAME_S)))
-        $(error This Makefile is for Windows with MinGW-w64/MSYS2. For Linux use Makefile.gfortran; for macOS use Makefile.macos; for Intel oneAPI use Visual Studio with URAMSES.sln)
+        $(error This Makefile is for Windows with MinGW-w64/MSYS2. For Linux use Makefile.linux; for macOS use Makefile.macos; for Intel oneAPI use Visual Studio with URAMSES.sln)
     endif
 endif
 

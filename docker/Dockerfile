@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /uramses
 
 # ── Default: build ramses.so and copy it to /output ──────────────────────────
-CMD make -f Makefile.gfortran dll \
+CMD make -f Makefile.linux dll \
     && mkdir -p /output \
     && cp Release_gnu_l/ramses.so /output/ramses.so \
     && echo "✅  ramses.so written to /output/ramses.so"

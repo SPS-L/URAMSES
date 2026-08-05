@@ -1,12 +1,12 @@
 ## Dockerfile
 
 This route always builds the **Linux** artifact (`ramses.so` via
-`Makefile.gfortran` and `modules_lin/`), whatever the host. It is the
+`Makefile.linux` and `modules_lin/`), whatever the host. It is the
 recommended option on Intel Macs, for which no pre-compiled RAMSES kit is
 published. For a native build, use `Makefile.macos` (Apple Silicon) or
 `Makefile.mingw` (Windows/MSYS2) instead.
 
-Place this at the root of your `stepss-uramses` clone (alongside `Makefile.gfortran`):
+Place this at the root of your `stepss-uramses` clone (alongside `Makefile.linux`):
 
 ```dockerfile
 # docker/Dockerfile
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /uramses
 
 # ── Default: build ramses.so and copy it to /output ──────────────────────────
-CMD make -f Makefile.gfortran dll \
+CMD make -f Makefile.linux dll \
     && mkdir -p /output \
     && cp Release_gnu_l/ramses.so /output/ramses.so \
     && echo "✅  ramses.so written to /output/ramses.so"
@@ -95,7 +95,7 @@ Or set the path via the `RAMSES_SO` env var if stepss-pyramses supports it.
 | Choice | Rationale |
 | :-- | :-- |
 | `ubuntu:24.04` base | Matches your target; `gfortran-13` ships in noble |
-| `libopenblas-dev` | Satisfies `-lopenblas` in `Makefile.gfortran` |
+| `libopenblas-dev` | Satisfies `-lopenblas` in `Makefile.linux` |
 | Bind-mount `.:/uramses` | User edits `my_models/` on host, no rebuild of the image needed |
 | `/output` volume | Clean separation; `ramses.so` lands on the host automatically |
 | `make dll` only | Only builds `ramses.so`, skipping `dynsim` – that's all pyramses needs |

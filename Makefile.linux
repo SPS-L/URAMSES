@@ -1,6 +1,7 @@
 #
 # Makefile for RAMSES using gfortran (Linux only)
-# For Windows builds, use Visual Studio with URAMSES.sln
+# For macOS use Makefile.macos; for Windows use Makefile.mingw (gfortran)
+# or Visual Studio with URAMSES.sln (Intel oneAPI).
 #
 # Author: Sustainable Power Systems Lab (SPS-L)
 # Web: https://sps-lab.org
@@ -76,7 +77,7 @@ OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 # ============================================================================
 
 ifneq ($(shell uname -s),Linux)
-    $(error This Makefile is for Linux only. For Windows, use Visual Studio with URAMSES.sln)
+    $(error This Makefile is for Linux only. For macOS use Makefile.macos; for Windows use Makefile.mingw or Visual Studio with URAMSES.sln)
 endif
 
 # ============================================================================
@@ -99,7 +100,7 @@ help:
 	@echo "RAMSES Linux Build System (gfortran)"
 	@echo "====================================="
 	@echo ""
-	@echo "Usage: make -f Makefile.gfortran [target]"
+	@echo "Usage: make -f Makefile.linux [target]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all         - Build both ramses.so and dynsim (default)"
@@ -113,7 +114,8 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for PyRAMSES"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
-	@echo "For Windows builds, use Visual Studio with URAMSES.sln"
+	@echo "For macOS use Makefile.macos; for Windows use Makefile.mingw"
+	@echo "(gfortran) or Visual Studio with URAMSES.sln (Intel oneAPI)."
 
 # Check dependencies
 check-deps:

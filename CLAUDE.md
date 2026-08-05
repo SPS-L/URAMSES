@@ -9,24 +9,24 @@ URAMSES is a Fortran framework for integrating custom user-defined models into P
 ## Build Commands (Linux)
 
 ```bash
-make -f Makefile.gfortran            # Build shared library + executable
-make -f Makefile.gfortran dll        # Shared library only (ramses.so)
-make -f Makefile.gfortran exe        # Executable only (dynsim)
-make -f Makefile.gfortran clean      # Remove build artifacts
-make -f Makefile.gfortran check-deps # Verify dependencies (gfortran, OpenBLAS, libramses.a)
+make -f Makefile.linux            # Build shared library + executable
+make -f Makefile.linux dll        # Shared library only (ramses.so)
+make -f Makefile.linux exe        # Executable only (dynsim)
+make -f Makefile.linux clean      # Remove build artifacts
+make -f Makefile.linux check-deps # Verify dependencies (gfortran, OpenBLAS, libramses.a)
 ```
 
 Output goes to `Release_gnu_l/`.
 
 ## Build Commands (macOS and Windows/MinGW)
 
-`Makefile.macos` and `Makefile.mingw` mirror `Makefile.gfortran` — same targets
+`Makefile.macos` and `Makefile.mingw` mirror `Makefile.linux` — same targets
 (`all`/`dll`/`exe`/`clean`/`check-deps`/`help`), same wildcard model discovery —
 and differ only in the module directory, output directory, and library naming:
 
 | Route | Makefile | Modules | Output dir | Shared lib |
 |---|---|---|---|---|
-| Linux | `Makefile.gfortran` | `modules_lin/` (`libramses.a`) | `Release_gnu_l/` | `ramses.so` |
+| Linux | `Makefile.linux` | `modules_lin/` (`libramses.a`) | `Release_gnu_l/` | `ramses.so` |
 | macOS arm64 | `Makefile.macos` | `modules_mac/` (`libramses.a`) | `Release_gnu_m/` | `ramses.so` |
 | Windows MinGW | `Makefile.mingw` | `modules_win_gfortran/` (`libramses.lib`) | `Release_gnu_w/` | `ramses.dll` |
 | Windows Intel | `URAMSES.sln` | `modules/` (`libramses.lib`) | `Release_intel_w64/` | `ramses.dll` |
@@ -84,7 +84,7 @@ main.f90 → c_interface.f90 → usr_*_models.f90 → my_models/*.f90 + FUNCTION
 
 1. Create `my_models/<type>_<NAME>.f90` following the naming convention (`exc_`, `inj_`, `tor_`, `twop_`, `dctl_`)
 2. Register in the corresponding `src/usr_<type>_models.f90` by adding a `case` to the `select case` block
-3. Rebuild with the Makefile for your platform, e.g. `make -f Makefile.gfortran clean all`
+3. Rebuild with the Makefile for your platform, e.g. `make -f Makefile.linux clean all`
 
 All three Makefiles auto-discover `.f90` files in `my_models/` via wildcard. Only the Intel Visual Studio route requires files to be added to the project by hand.
 
