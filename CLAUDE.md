@@ -16,7 +16,36 @@ make -f Makefile.gfortran clean      # Remove build artifacts
 make -f Makefile.gfortran check-deps # Verify dependencies (gfortran, OpenBLAS, libramses.a)
 ```
 
-Output goes to `Release_gnu_l/`. On Windows, use Visual Studio with `URAMSES.sln` and Intel oneAPI Fortran compiler.
+Output goes to `Release_gnu_l/`.
+
+## Build Commands (macOS and Windows/MinGW)
+
+`Makefile.macos` and `Makefile.mingw` mirror `Makefile.gfortran` — same targets
+(`all`/`dll`/`exe`/`clean`/`check-deps`/`help`), same wildcard model discovery —
+and differ only in the module directory, output directory, and library naming:
+
+| Route | Makefile | Modules | Output dir | Shared lib |
+|---|---|---|---|---|
+| Linux | `Makefile.gfortran` | `modules_lin/` (`libramses.a`) | `Release_gnu_l/` | `ramses.so` |
+| macOS arm64 | `Makefile.macos` | `modules_mac/` (`libramses.a`) | `Release_gnu_m/` | `ramses.so` |
+| Windows MinGW | `Makefile.mingw` | `modules_win_gfortran/` (`libramses.lib`) | `Release_gnu_w/` | `ramses.dll` |
+| Windows Intel | `URAMSES.sln` | `modules/` (`libramses.lib`) | `Release_intel_w64/` | `ramses.dll` |
+
+Constraints worth knowing before editing these files:
+
+- macOS uses `ramses.so`, **not** `ramses.dylib` — PyRAMSES separates platforms
+  by the `libs/lin`, `libs/mac`, `libs/win` folder, not by filename.
+- `modules_mac/` holds arm64 objects only; there is no Intel-mac kit.
+- `modules_mac/` and `modules_win_gfortran/` are GFORTRAN module version 16
+  (gfortran 15+); `modules_lin/` is version 15. Each `check-deps` compares the
+  local compiler against the kit and fails early on a mismatch.
+- The Windows gfortran kit ships `libramses.lib`, which MinGW's linker does not
+  probe for `-lramses`, so `Makefile.mingw` passes it by explicit path.
+- `FC` is assigned with `=` not `?=` in all three: make predefines `FC` as `f77`,
+  which `?=` would leave in place. A command-line `FC=` still overrides.
+
+Kits come from the matching `stepss-ramses` release, e.g.
+`uramses-modules_{lin,mac,win_gfortran}-v3.51.zip` for RAMSES v3.51.
 
 ## Build Commands (Docker)
 
@@ -39,8 +68,10 @@ main.f90 → c_interface.f90 → usr_*_models.f90 → my_models/*.f90 + FUNCTION
 
 **Key directories:**
 - `src/` — Framework code (C interface, model routers, utility functions, main entry point)
-- `my_models/` — User model implementations (auto-discovered by Makefile on Linux)
+- `my_models/` — User model implementations (auto-discovered by every Makefile build)
 - `modules_lin/` — Pre-compiled RAMSES library and `.mod` files (Linux/gfortran)
+- `modules_mac/` — Pre-compiled RAMSES library and `.mod` files (macOS arm64/gfortran)
+- `modules_win_gfortran/` — Pre-compiled RAMSES library and `.mod` files (Windows/MinGW)
 - `modules/` — Pre-compiled RAMSES library and `.mod` files (Windows/Intel)
 - `docker/` — Dockerfile for containerized builds
 - `output/` — Docker build output directory (ramses.so)
@@ -53,9 +84,11 @@ main.f90 → c_interface.f90 → usr_*_models.f90 → my_models/*.f90 + FUNCTION
 
 1. Create `my_models/<type>_<NAME>.f90` following the naming convention (`exc_`, `inj_`, `tor_`, `twop_`, `dctl_`)
 2. Register in the corresponding `src/usr_<type>_models.f90` by adding a `case` to the `select case` block
-3. Rebuild: `make -f Makefile.gfortran clean all`
+3. Rebuild with the Makefile for your platform, e.g. `make -f Makefile.gfortran clean all`
 
-On Linux, the Makefile auto-discovers `.f90` files in `my_models/` via wildcard. On Windows, files must be manually added to the Visual Studio project.
+All three Makefiles auto-discover `.f90` files in `my_models/` via wildcard. Only the Intel Visual Studio route requires files to be added to the project by hand.
+
+Do not copy a model that the linked RAMSES library already exports — defining a subroutine the library also defines produces a duplicate-symbol link error. Register those by name in the routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 
 ## Fortran Conventions
 

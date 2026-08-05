@@ -1,11 +1,12 @@
 #
-# Makefile for RAMSES using gfortran (Linux only)
-# For Windows builds, use Visual Studio with URAMSES.sln
+# Makefile for RAMSES using gfortran (macOS, Apple Silicon)
+# For Linux builds use Makefile.gfortran; for Windows use Makefile.mingw
+# (gfortran) or Visual Studio with URAMSES.sln (Intel oneAPI).
 #
 # Author: Sustainable Power Systems Lab (SPS-L)
 # Web: https://sps-lab.org
 # Contact: info@sps-lab.org
-# Last edited: January 2026
+# Last edited: August 2026
 #
 
 # ============================================================================
@@ -13,6 +14,11 @@
 # ============================================================================
 
 # Compiler and tools
+# macOS ships no Fortran compiler; gfortran comes from Homebrew ("brew install
+# gcc"). Override FC if your Homebrew gcc installs a versioned binary only,
+# e.g. "make -f Makefile.macos FC=gfortran-14".
+# Assigned with = rather than ?= because make predefines FC as f77, which ?=
+# would leave in place; a command-line FC= still wins over this.
 FC = gfortran
 AR = ar
 RM = rm -f
@@ -22,13 +28,21 @@ MKDIR = mkdir -p
 # Directories
 SRC_DIR = src
 MY_MODELS_DIR = my_models
-MOD_DIR = modules_lin
-OUT_DIR = Release_gnu_l
+MOD_DIR = modules_mac
+OUT_DIR = Release_gnu_m
 OBJ_DIR = $(OUT_DIR)/obj
 
 # Output files
+# PyRAMSES expects the macOS shared library to be named ramses.so, matching the
+# Linux build; the per-platform libs/mac folder keeps the two apart. Do not
+# rename this to ramses.dylib.
 TARGET_SO = ramses.so
 TARGET_EXE = dynsim
+
+# BLAS/LAPACK provider: "openblas" (default, matches the Linux build) or
+# "accelerate" to use Apple's system framework instead:
+#   make -f Makefile.macos BLAS=accelerate
+BLAS ?= openblas
 
 # Compiler flags
 # -O2: Optimization level 2
@@ -43,14 +57,28 @@ FFLAGS = -O2 -cpp -fopenmp -fPIC -DDLL \
          -I$(MOD_DIR)
 
 # Linker flags for shared library
+# gfortran maps -shared to -dynamiclib on Darwin, so the Linux flag is kept.
 LDFLAGS_SO = -shared -fopenmp
 
 # Linker flags for executable
 LDFLAGS_EXE = -fopenmp
 
 # Libraries
-# Link against pre-compiled libramses.a and OpenBLAS
-LIBS = -L$(MOD_DIR) -lramses -lopenblas 
+# Link against pre-compiled libramses.a plus a BLAS/LAPACK provider.
+# Homebrew's OpenBLAS is keg-only: it is not on the default linker search
+# path, so its lib dir must be added explicitly.
+ifeq ($(BLAS),accelerate)
+    BLAS_LIBS = -framework Accelerate
+else
+    OPENBLAS_PREFIX := $(shell brew --prefix openblas 2>/dev/null)
+    ifneq ($(OPENBLAS_PREFIX),)
+        BLAS_LIBS = -L$(OPENBLAS_PREFIX)/lib -lopenblas
+    else
+        BLAS_LIBS = -lopenblas
+    endif
+endif
+
+LIBS = -L$(MOD_DIR) -lramses $(BLAS_LIBS)
 
 # ============================================================================
 # Source files
@@ -72,11 +100,22 @@ OBJS = $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.f90=.o)))
 OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 
 # ============================================================================
-# Check for Linux
+# Check for macOS on Apple Silicon
 # ============================================================================
 
-ifneq ($(shell uname -s),Linux)
-    $(error This Makefile is for Linux only. For Windows, use Visual Studio with URAMSES.sln)
+# Detected platform. Both are plain variables so a dry run can be checked from
+# another host, e.g. "make -f Makefile.macos UNAME_S=Darwin UNAME_M=arm64 -n".
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+ifneq ($(UNAME_S),Darwin)
+    $(error This Makefile is for macOS only. For Linux use Makefile.gfortran; for Windows use Makefile.mingw or Visual Studio with URAMSES.sln)
+endif
+
+# The pre-compiled kit in modules_mac/ is built for arm64 only. On an Intel Mac
+# the link fails with an architecture mismatch, so stop with a clear message.
+ifneq ($(UNAME_M),arm64)
+    $(error modules_mac/ ships arm64 (Apple Silicon) objects only, but this host is $(UNAME_M). An Intel-mac RAMSES kit is not distributed; build RAMSES from source or use the Linux/Docker route)
 endif
 
 # ============================================================================
@@ -96,10 +135,10 @@ exe: check-deps $(OUT_DIR)/$(TARGET_EXE)
 
 # Help target
 help:
-	@echo "RAMSES Linux Build System (gfortran)"
-	@echo "====================================="
+	@echo "RAMSES macOS Build System (gfortran, Apple Silicon)"
+	@echo "==================================================="
 	@echo ""
-	@echo "Usage: make -f Makefile.gfortran [target]"
+	@echo "Usage: make -f Makefile.macos [target] [BLAS=openblas|accelerate]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  all         - Build both ramses.so and dynsim (default)"
@@ -113,22 +152,43 @@ help:
 	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for PyRAMSES"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
-	@echo "For Windows builds, use Visual Studio with URAMSES.sln"
+	@echo "For Linux builds use Makefile.gfortran; for Windows use"
+	@echo "Makefile.mingw (gfortran) or Visual Studio with URAMSES.sln (Intel)."
 
 # Check dependencies
 check-deps:
 	@echo "Checking dependencies..."
 	@echo ""
 	@echo "Checking for gfortran..."
-	@if ! command -v gfortran > /dev/null 2>&1; then \
-		echo "ERROR: gfortran not found. Please install gfortran:"; \
-		echo "  Ubuntu/Debian: sudo apt install gfortran"; \
-		echo "  Fedora/RHEL:   sudo dnf install gcc-gfortran"; \
-		echo "  Arch Linux:    sudo pacman -S gcc-fortran"; \
+	@if ! command -v $(FC) > /dev/null 2>&1; then \
+		echo "ERROR: $(FC) not found. Install the GNU compilers via Homebrew:"; \
+		echo "  brew install gcc"; \
+		echo "If Homebrew installed a versioned binary only, pass it explicitly:"; \
+		echo "  make -f Makefile.macos FC=gfortran-14"; \
 		exit 1; \
 	else \
-		echo "  Found: $$(gfortran --version | head -n1)"; \
+		echo "  Found: $$($(FC) --version | head -n1)"; \
 	fi
+	@echo ""
+	@echo "Checking architecture..."
+	@echo "  Found: $(UNAME_M) (modules_mac/ requires arm64)"
+	@echo ""
+	@echo "Checking for BLAS/LAPACK ($(BLAS))..."
+ifeq ($(BLAS),accelerate)
+	@echo "  Using Apple Accelerate framework"
+else
+	@if [ -n "$(OPENBLAS_PREFIX)" ]; then \
+		echo "  Found: $(OPENBLAS_PREFIX)"; \
+	elif pkg-config --exists openblas > /dev/null 2>&1; then \
+		echo "  Found: OpenBLAS $$(pkg-config --modversion openblas) (via pkg-config)"; \
+	else \
+		echo "ERROR: OpenBLAS not found. Install it with:"; \
+		echo "  brew install openblas"; \
+		echo "Or build against Apple's framework instead:"; \
+		echo "  make -f Makefile.macos BLAS=accelerate"; \
+		exit 1; \
+	fi
+endif
 	@echo ""
 	@echo "Checking for pre-compiled modules..."
 	@if [ ! -d "$(MOD_DIR)" ]; then \
@@ -142,6 +202,25 @@ check-deps:
 	@echo "  Found: $(MOD_DIR)/libramses.a"
 	@MOD_COUNT=$$(ls -1 $(MOD_DIR)/*.mod 2>/dev/null | wc -l); \
 	echo "  Found: $$MOD_COUNT module files in $(MOD_DIR)/"
+	@echo ""
+	@echo "Checking gfortran module compatibility..."
+	@KIT_VER=$$(gzip -dc $(MOD_DIR)/bus.mod 2>/dev/null | head -c 256 | sed -n "s/.*module version '\([0-9]*\)'.*/\1/p"); \
+	TMPD=$$(mktemp -d); \
+	printf 'module probe_mod\nend module probe_mod\n' > $$TMPD/probe.f90; \
+	$(FC) -c $$TMPD/probe.f90 -o $$TMPD/probe.o -J$$TMPD > /dev/null 2>&1 || true; \
+	FC_VER=$$(gzip -dc $$TMPD/probe_mod.mod 2>/dev/null | head -c 256 | sed -n "s/.*module version '\([0-9]*\)'.*/\1/p"); \
+	$(RMDIR) $$TMPD; \
+	if [ -z "$$KIT_VER" ] || [ -z "$$FC_VER" ]; then \
+		echo "  Skipped: could not determine module versions"; \
+	elif [ "$$KIT_VER" != "$$FC_VER" ]; then \
+		echo "ERROR: $(MOD_DIR)/ holds GFORTRAN module version $$KIT_VER but $(FC) emits version $$FC_VER."; \
+		echo "The .mod files can only be read by the gfortran release that wrote them."; \
+		echo "Install a matching gfortran (brew install gcc) and if it is versioned, pass it:"; \
+		echo "  make -f Makefile.macos FC=gfortran-15"; \
+		exit 1; \
+	else \
+		echo "  OK: module version $$KIT_VER matches $(FC)"; \
+	fi
 	@echo ""
 	@echo "All dependencies satisfied."
 	@echo ""

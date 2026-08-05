@@ -7,15 +7,22 @@ URAMSES lets you compile your own Fortran device models and link them against a 
 ## Features
 
 - **Five model categories** — exciters (`exc_`), torque/governors (`tor_`), injectors (`inj_`), two-port devices (`twop_`), and discrete controls (`dctl_`)
-- **No RAMSES source required** — models link against the pre-compiled RAMSES library shipped in `modules_lin/` (Linux, `libramses.a`) and `modules/` (Windows, `libramses.lib`)
-- **Automatic model discovery on Linux** — the Makefile picks up any `.f90` file placed in `my_models/` via wildcard; no Makefile edits needed
-- **Three build routes** — gfortran Makefile (Linux), Visual Studio with Intel oneAPI Fortran (Windows), or Docker (no host toolchain)
+- **No RAMSES source required** — models link against a pre-compiled RAMSES library shipped per platform: `modules_lin/` (Linux/gfortran, `libramses.a`), `modules_mac/` (macOS arm64/gfortran, `libramses.a`), `modules_win_gfortran/` (Windows/MinGW, `libramses.lib`), and `modules/` (Windows/Intel, `libramses.lib`)
+- **Automatic model discovery in every Makefile build** — Linux, macOS, and Windows/MinGW pick up any `.f90` file placed in `my_models/` via wildcard; no Makefile edits needed. Only the Intel Visual Studio route needs files added by hand
+- **Five build routes** — gfortran Makefiles for Linux, macOS, and Windows/MinGW; Visual Studio with Intel oneAPI Fortran (Windows); or Docker (no host toolchain)
 - **Dual outputs** — a shared library for PyRAMSES/STEPSS integration and a standalone `dynsim` executable
-- **Example models included** — ENTSO-E and IEEE exciter, governor, and load models with parameter files in `my_models/`
+- **Example models included** — an ENTSO-E exciter and an air-conditioning load model with parameter files in `my_models/`
 
 ## Installation
 
-**Requirements:** gfortran and OpenBLAS (Linux); Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows); or Docker with Compose v2 (any platform). To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
+**Requirements:** gfortran and OpenBLAS (Linux, macOS, Windows/MinGW); Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows/Intel); or Docker with Compose v2 (any platform). To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
+
+> **gfortran version must match the kit.** Fortran `.mod` files are readable only
+> by the gfortran release that wrote them. The `modules_mac/` and
+> `modules_win_gfortran/` kits are built with **GFORTRAN module version 16**
+> (gfortran 15 or newer); `modules_lin/` uses **module version 15** (gfortran 13
+> or 14). Each Makefile's `check-deps` target compares your compiler against the
+> kit and reports a mismatch before the build starts.
 
 ### Linux
 
@@ -30,7 +37,32 @@ sudo dnf install gcc-gfortran openblas-devel
 sudo pacman -S gcc-fortran openblas
 ```
 
-### Windows
+### macOS (Apple Silicon)
+
+macOS ships no Fortran compiler, so gfortran comes from Homebrew:
+
+```bash
+brew install gcc openblas
+```
+
+The `modules_mac/` kit contains **arm64 objects only**. On an Intel Mac the
+Makefile stops with a clear message rather than failing at link time; use the
+Docker route there instead. If Homebrew installs a versioned binary only, pass
+it explicitly with `FC=gfortran-15`.
+
+### Windows (MinGW / gfortran)
+
+Install [MSYS2](https://www.msys2.org/), then from an MSYS2 shell:
+
+```bash
+pacman -S mingw-w64-x86_64-gcc-fortran mingw-w64-x86_64-openblas
+```
+
+Build from the **"MSYS2 MinGW 64-bit"** shell, not the plain MSYS shell — the
+latter links against the `msys-2.0` runtime and produces a DLL that CPython
+cannot load. The Makefile refuses to run there.
+
+### Windows (Intel oneAPI)
 
 - **Microsoft Visual Studio** (2019 or later recommended)
 - **Intel oneAPI Fortran Compiler** (formerly Intel Fortran)
@@ -56,7 +88,35 @@ make -f Makefile.gfortran
 ./Release_gnu_l/dynsim
 ```
 
-### Windows
+### macOS (Apple Silicon)
+
+```bash
+# Build everything (shared library + executable)
+make -f Makefile.macos
+
+# Run standalone simulation
+./Release_gnu_m/dynsim
+```
+
+To link against Apple's Accelerate framework instead of OpenBLAS:
+
+```bash
+make -f Makefile.macos BLAS=accelerate
+```
+
+### Windows (MinGW / gfortran)
+
+From the "MSYS2 MinGW 64-bit" shell:
+
+```bash
+# Build everything (shared library + executable)
+make -f Makefile.mingw
+
+# Run standalone simulation
+./Release_gnu_w/dynsim.exe
+```
+
+### Windows (Intel oneAPI)
 
 1. Open `URAMSES.sln` in Visual Studio
 2. Select `Release|x64` configuration
@@ -75,9 +135,13 @@ docker compose run --rm uramses-build  # Build ramses.so → output/ramses.so
 ```python
 import pyramses
 
-ram = pyramses.sim('/path/to/URAMSES/Release_gnu_l')        # Linux
-# ram = pyramses.sim(r'C:\path\to\URAMSES\Release_intel_w64')  # Windows
+ram = pyramses.sim('/path/to/URAMSES/Release_gnu_l')             # Linux
+# ram = pyramses.sim('/path/to/URAMSES/Release_gnu_m')           # macOS
+# ram = pyramses.sim(r'C:\path\to\URAMSES\Release_gnu_w')        # Windows (MinGW)
+# ram = pyramses.sim(r'C:\path\to\URAMSES\Release_intel_w64')    # Windows (Intel)
 ```
+
+PyRAMSES loads `ramses.so` on Linux and macOS, and `ramses.dll` on Windows.
 
 ## Model Types
 
@@ -113,17 +177,27 @@ URAMSES/
 ├── modules_lin/            # Pre-compiled modules (Linux/gfortran)
 │   ├── *.mod               # Module interface files
 │   └── libramses.a         # Pre-compiled RAMSES library
-├── URAMSES.sln             # Visual Studio solution file (Windows)
-├── dllramses.vfproj        # DLL project - ramses.dll (Windows)
-├── exeramses.vfproj        # Executable project - dynsim.exe (Windows)
-├── MDL.vfproj              # Model library project - ramsesmdl.dll (Windows)
+├── modules_mac/            # Pre-compiled modules (macOS arm64/gfortran)
+│   ├── *.mod               # Module interface files
+│   └── libramses.a         # Pre-compiled RAMSES library
+├── modules_win_gfortran/   # Pre-compiled modules (Windows/MinGW gfortran)
+│   ├── *.mod               # Module interface files
+│   └── libramses.lib       # Pre-compiled RAMSES library
+├── URAMSES.sln             # Visual Studio solution file (Windows/Intel)
+├── dllramses.vfproj        # DLL project - ramses.dll (Windows/Intel)
+├── exeramses.vfproj        # Executable project - dynsim.exe (Windows/Intel)
+├── MDL.vfproj              # Model library project - ramsesmdl.dll (Windows/Intel)
 ├── Makefile.gfortran       # Makefile for Linux builds
+├── Makefile.macos          # Makefile for macOS builds (Apple Silicon)
+├── Makefile.mingw          # Makefile for Windows/MinGW builds
 ├── docker/                 # Docker build environment
 │   └── Dockerfile          # Ubuntu 24.04 + gfortran + OpenBLAS
 ├── docker-compose.yml      # One-command Docker build
 ├── build.sh                # Docker build helper script
 ├── output/                 # Docker build output (ramses.so)
-├── Release_intel_w64/      # Compiled output (Windows)
+├── Release_intel_w64/      # Compiled output (Windows/Intel)
+├── Release_gnu_w/          # Compiled output (Windows/MinGW)
+├── Release_gnu_m/          # Compiled output (macOS)
 └── Release_gnu_l/          # Compiled output (Linux)
 ```
 
@@ -160,7 +234,70 @@ Release_gnu_l/ramses.so   # Shared library for PyRAMSES
 Release_gnu_l/dynsim      # Standalone executable
 ```
 
-### Building on Windows
+### Building on macOS (Apple Silicon)
+
+`Makefile.macos` mirrors the Linux build: it auto-detects sources, links against
+`libramses.a` from `modules_mac/`, and writes `Release_gnu_m/`. The shared
+library is named `ramses.so` — the same as on Linux, because PyRAMSES keeps the
+two apart in per-platform `libs/` folders rather than by filename. Do not rename
+it to `ramses.dylib`.
+
+```bash
+make -f Makefile.macos                    # Build both ramses.so and dynsim (default)
+make -f Makefile.macos dll                # Build only ramses.so (shared library)
+make -f Makefile.macos exe                # Build only dynsim (executable)
+make -f Makefile.macos clean              # Remove build artifacts
+make -f Makefile.macos check-deps         # Verify dependencies
+make -f Makefile.macos help               # Show help
+
+make -f Makefile.macos BLAS=accelerate    # Use Apple Accelerate instead of OpenBLAS
+make -f Makefile.macos FC=gfortran-15     # Use a versioned Homebrew gfortran
+```
+
+Two guards stop the build early with an explanatory message: the kit is arm64
+only, so Intel Macs are rejected up front; and `check-deps` refuses to continue
+if your gfortran writes a different `.mod` format version than the kit.
+
+#### Output
+
+```
+Release_gnu_m/ramses.so   # Shared library for PyRAMSES
+Release_gnu_m/dynsim      # Standalone executable
+```
+
+### Building on Windows (MinGW / gfortran)
+
+`Makefile.mingw` is the free-toolchain Windows route and is independent of the
+Intel Visual Studio projects — the two can coexist, writing to `Release_gnu_w/`
+and `Release_intel_w64/` respectively. Run it from the **"MSYS2 MinGW 64-bit"**
+shell; the plain MSYS shell is rejected because it produces a DLL linked to the
+`msys-2.0` runtime that CPython cannot load.
+
+```bash
+make -f Makefile.mingw               # Build both ramses.dll and dynsim.exe (default)
+make -f Makefile.mingw dll           # Build only ramses.dll (shared library)
+make -f Makefile.mingw exe           # Build only dynsim.exe (executable)
+make -f Makefile.mingw clean         # Remove build artifacts
+make -f Makefile.mingw check-deps    # Verify dependencies
+make -f Makefile.mingw help          # Show help
+```
+
+The Windows gfortran kit ships its archive as `libramses.lib` rather than
+`libramses.a`. MinGW's linker does not probe that name for `-lramses`, so the
+Makefile passes `modules_win_gfortran/libramses.lib` by explicit path.
+
+#### Output
+
+```
+Release_gnu_w/ramses.dll   # Shared library for PyRAMSES
+Release_gnu_w/dynsim.exe   # Standalone executable
+```
+
+The resulting DLL depends on the MSYS2 runtime DLLs (`libgfortran`, `libgcc_s`,
+`libgomp`, `libopenblas`). Keep the MinGW `bin` directory on `PATH`, or copy
+those DLLs next to `ramses.dll`, when loading it from Python.
+
+### Building on Windows (Intel oneAPI)
 
 #### Visual Studio Projects
 
@@ -246,10 +383,10 @@ The compiled `ramses.so` is written to the `output/` directory on the host.
 
 Place your generated `.f90` model files (created by CODEGEN) into the `my_models/` directory.
 
-**Linux**: The Makefile will automatically detect and compile any `.f90` files in this directory.
-**Windows**: You'll need to add the file to the Visual Studio project (see step 3).
+**Linux, macOS, Windows/MinGW**: The Makefiles automatically detect and compile any `.f90` files in this directory.
+**Windows/Intel**: You'll need to add the file to the Visual Studio project (see step 3).
 
-**Example**: If you create `my_models/exc_MYMODEL.f90`, it will be automatically included in Linux builds.
+**Example**: If you create `my_models/exc_MYMODEL.f90`, it will be automatically included in every Makefile build.
 
 #### 2. Register Model in Association Files
 
@@ -297,16 +434,16 @@ end select
 
 **Important**: The `modelname` in the `case` statement must match exactly the name used in your simulation case files.
 
-#### 3. Add to Visual Studio Project (Windows Only)
+#### 3. Add to Visual Studio Project (Windows/Intel Only)
 
-For Windows builds, you need to manually add the model file to the Visual Studio project:
+For Windows/Intel builds, you need to manually add the model file to the Visual Studio project:
 
 1. Right-click on the `dllramses` project in Solution Explorer
 2. Select "Add" → "Existing Item"
 3. Navigate to `my_models/` and select your `.f90` files
 4. Click "Add"
 
-**Note**: For Linux builds, this step is **not required**. The Makefile automatically detects all `.f90` files in `my_models/` using `wildcard`, so your new model will be compiled automatically.
+**Note**: For the Makefile builds (Linux, macOS, Windows/MinGW) this step is **not required**. Each Makefile detects all `.f90` files in `my_models/` using `wildcard`, so your new model will be compiled automatically.
 
 #### 4. Rebuild
 
@@ -314,9 +451,20 @@ For Windows builds, you need to manually add the model file to the Visual Studio
   ```bash
   make -f Makefile.gfortran clean all
   ```
-  The Makefile will automatically compile your new model file(s) from `my_models/`.
 
-- **Windows**: Rebuild the solution in Visual Studio (Build → Rebuild Solution)
+- **macOS**:
+  ```bash
+  make -f Makefile.macos clean all
+  ```
+
+- **Windows/MinGW**:
+  ```bash
+  make -f Makefile.mingw clean all
+  ```
+
+  Each Makefile will automatically compile your new model file(s) from `my_models/`.
+
+- **Windows/Intel**: Rebuild the solution in Visual Studio (Build → Rebuild Solution)
 
 ### Model File Naming Conventions
 
@@ -361,13 +509,14 @@ dynsim.exe
 
 ## Examples
 
-The `my_models/` directory contains several example models:
+The `my_models/` directory contains example models:
 - `exc_ENTSOE_lim.f90`: ENTSO-E exciter model with limiters
-- `exc_GENERIC3.f90`: Generic exciter model type 3
-- `exc_GENERIC4.f90`: Generic exciter model type 4
-- `exc_ST1A.f90`: IEEE ST1A exciter model
 - `inj_AIR_COND1_mod.f90`: Air conditioning load model
-- `tor_ENTSOE_simp.f90`: Simplified ENTSO-E torque model
+
+Models already provided by the RAMSES library in `modules_lin/` must not be
+duplicated here — defining a subroutine that the library also exports produces
+a duplicate-symbol link error. Register those by name in the `src/usr_*_models.f90`
+routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 
 ## Troubleshooting
 
@@ -399,7 +548,47 @@ The `my_models/` directory contains several example models:
    - Check that the file is in the `my_models/` directory
    - Run `make -f Makefile.gfortran clean all` to force a full rebuild
 
-### Windows Issues
+### macOS Issues
+
+1. **`Cannot read module file ... created by a different version of GNU Fortran`**
+   - The `modules_mac/` kit is built with GFORTRAN module version 16 (gfortran 15+)
+   - Run `make -f Makefile.macos check-deps` to see both versions side by side
+   - Install a matching compiler with `brew install gcc`, then pass it explicitly
+     if Homebrew only provides a versioned binary: `make -f Makefile.macos FC=gfortran-15`
+
+2. **`modules_mac/ ships arm64 objects only`**
+   - The pre-compiled kit is Apple Silicon only; no Intel-mac kit is distributed
+   - Use the Docker route on Intel Macs, or build RAMSES from source
+
+3. **OpenBLAS not found**
+   - `brew install openblas` (Homebrew keeps it keg-only; the Makefile finds it
+     via `brew --prefix`)
+   - Or skip it entirely with `make -f Makefile.macos BLAS=accelerate`
+
+4. **`gfortran: command not found`**
+   - macOS ships no Fortran compiler: `brew install gcc`
+
+### Windows Issues (MinGW / gfortran)
+
+1. **Makefile refuses to run in the MSYS shell**
+   - Use the "MSYS2 MinGW 64-bit" shell. The plain MSYS shell links against the
+     `msys-2.0` runtime and produces a DLL that CPython cannot load
+
+2. **`Cannot read module file ... created by a different version of GNU Fortran`**
+   - The `modules_win_gfortran/` kit needs gfortran 15+ (module version 16)
+   - Update the toolchain: `pacman -Syu mingw-w64-x86_64-gcc-fortran`
+
+3. **`cannot find -lramses`**
+   - Expected: the kit ships `libramses.lib`, which MinGW's linker does not probe
+     for `-lramses`. The Makefile passes it by explicit path — do not replace that
+     with `-lramses`
+
+4. **Python cannot load `ramses.dll`**
+   - The DLL needs the MSYS2 runtime (`libgfortran`, `libgcc_s`, `libgomp`,
+     `libopenblas`). Add the MinGW `bin` directory to `PATH` or copy those DLLs
+     alongside `ramses.dll`
+
+### Windows Issues (Intel oneAPI)
 
 1. **Compilation Errors**: Ensure Intel Fortran compiler is properly installed and configured
 2. **Missing Models**: Verify model names match exactly in association files

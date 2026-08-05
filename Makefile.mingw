@@ -1,11 +1,17 @@
 #
-# Makefile for RAMSES using gfortran (Linux only)
-# For Windows builds, use Visual Studio with URAMSES.sln
+# Makefile for RAMSES using gfortran (Windows, MinGW-w64 via MSYS2)
+# This is the free-toolchain Windows route. The Intel oneAPI route is
+# unaffected and still uses Visual Studio with URAMSES.sln.
+# For Linux use Makefile.gfortran; for macOS use Makefile.macos.
+#
+# Run this from an "MSYS2 MinGW 64-bit" shell, not the plain MSYS shell:
+# the plain MSYS shell targets the Cygwin-like runtime and produces a DLL
+# that Python cannot load.
 #
 # Author: Sustainable Power Systems Lab (SPS-L)
 # Web: https://sps-lab.org
 # Contact: info@sps-lab.org
-# Last edited: January 2026
+# Last edited: August 2026
 #
 
 # ============================================================================
@@ -13,6 +19,8 @@
 # ============================================================================
 
 # Compiler and tools
+# Assigned with = rather than ?= because make predefines FC as f77, which ?=
+# would leave in place; a command-line FC= still wins over this.
 FC = gfortran
 AR = ar
 RM = rm -f
@@ -22,35 +30,41 @@ MKDIR = mkdir -p
 # Directories
 SRC_DIR = src
 MY_MODELS_DIR = my_models
-MOD_DIR = modules_lin
-OUT_DIR = Release_gnu_l
+MOD_DIR = modules_win_gfortran
+OUT_DIR = Release_gnu_w
 OBJ_DIR = $(OUT_DIR)/obj
 
 # Output files
-TARGET_SO = ramses.so
-TARGET_EXE = dynsim
+# PyRAMSES loads ramses.dll on Windows (ramses.so on Linux/macOS).
+TARGET_DLL = ramses.dll
+TARGET_EXE = dynsim.exe
 
 # Compiler flags
 # -O2: Optimization level 2
 # -cpp: Enable C preprocessor
 # -fopenmp: Enable OpenMP support
-# -fPIC: Position Independent Code (required for shared libraries)
-# -DDLL: Define DLL preprocessor macro (matches Windows build)
+# -DDLL: Define DLL preprocessor macro (enables the DLLEXPORT attributes)
 # -ffree-line-length-none: No line length limit for free-form Fortran
 # -ffree-form: Use free-form source layout
-FFLAGS = -O2 -cpp -fopenmp -fPIC -DDLL \
+# Note: -fPIC is deliberately absent. Windows PE code is position independent
+# by construction and gfortran warns that the flag is ignored for this target.
+FFLAGS = -O2 -cpp -fopenmp -DDLL \
          -ffree-line-length-none -ffree-form \
          -I$(MOD_DIR)
 
 # Linker flags for shared library
-LDFLAGS_SO = -shared -fopenmp
+LDFLAGS_DLL = -shared -fopenmp
 
 # Linker flags for executable
 LDFLAGS_EXE = -fopenmp
 
 # Libraries
-# Link against pre-compiled libramses.a and OpenBLAS
-LIBS = -L$(MOD_DIR) -lramses -lopenblas 
+# The Windows gfortran kit ships the RAMSES archive as libramses.lib rather
+# than libramses.a. MinGW's linker does not probe that name for -lramses, so
+# the archive is passed by explicit path instead.
+RAMSES_LIB = $(MOD_DIR)/libramses.lib
+
+LIBS = $(RAMSES_LIB) -lopenblas
 
 # ============================================================================
 # Source files
@@ -72,11 +86,25 @@ OBJS = $(addprefix $(OBJ_DIR)/, $(notdir $(SRCS:.f90=.o)))
 OBJS_EXE = $(OBJS) $(OBJ_DIR)/main.o
 
 # ============================================================================
-# Check for Linux
+# Check for Windows
 # ============================================================================
 
-ifneq ($(shell uname -s),Linux)
-    $(error This Makefile is for Linux only. For Windows, use Visual Studio with URAMSES.sln)
+# Detected platform. MSYS2 sets OS=Windows_NT; uname reports MINGW64_NT-* in a
+# MinGW shell and MSYS_NT-* in the plain MSYS shell. UNAME_S is a plain
+# variable so a dry run can be checked from another host, e.g.
+# "make -f Makefile.mingw UNAME_S=MINGW64_NT-10.0 -n".
+UNAME_S := $(shell uname -s 2>/dev/null)
+
+ifneq ($(OS),Windows_NT)
+    ifeq (,$(findstring MINGW,$(UNAME_S)))
+        $(error This Makefile is for Windows with MinGW-w64/MSYS2. For Linux use Makefile.gfortran; for macOS use Makefile.macos; for Intel oneAPI use Visual Studio with URAMSES.sln)
+    endif
+endif
+
+# The plain MSYS shell links against the msys-2.0 runtime, producing a DLL that
+# CPython cannot load. Require the MinGW 64-bit shell.
+ifneq (,$(findstring MSYS_NT,$(UNAME_S)))
+    $(error Run this from the "MSYS2 MinGW 64-bit" shell, not the plain MSYS shell)
 endif
 
 # ============================================================================
@@ -86,48 +114,56 @@ endif
 .PHONY: all dll exe clean check-deps help
 
 # Default target - build both shared library and executable
-all: check-deps $(OUT_DIR)/$(TARGET_SO) $(OUT_DIR)/$(TARGET_EXE)
+all: check-deps $(OUT_DIR)/$(TARGET_DLL) $(OUT_DIR)/$(TARGET_EXE)
 
 # Build only shared library
-dll: check-deps $(OUT_DIR)/$(TARGET_SO)
+dll: check-deps $(OUT_DIR)/$(TARGET_DLL)
 
 # Build only executable
 exe: check-deps $(OUT_DIR)/$(TARGET_EXE)
 
 # Help target
 help:
-	@echo "RAMSES Linux Build System (gfortran)"
-	@echo "====================================="
+	@echo "RAMSES Windows Build System (gfortran / MinGW-w64)"
+	@echo "=================================================="
 	@echo ""
-	@echo "Usage: make -f Makefile.gfortran [target]"
+	@echo "Usage: make -f Makefile.mingw [target]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all         - Build both ramses.so and dynsim (default)"
-	@echo "  dll         - Build only ramses.so (shared library)"
-	@echo "  exe         - Build only dynsim (executable)"
+	@echo "  all         - Build both ramses.dll and dynsim.exe (default)"
+	@echo "  dll         - Build only ramses.dll (shared library)"
+	@echo "  exe         - Build only dynsim.exe (executable)"
 	@echo "  clean       - Remove all build artifacts"
 	@echo "  check-deps  - Verify required dependencies"
 	@echo "  help        - Show this help message"
 	@echo ""
 	@echo "Output:"
-	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for PyRAMSES"
+	@echo "  $(OUT_DIR)/$(TARGET_DLL)   - Shared library for PyRAMSES"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
-	@echo "For Windows builds, use Visual Studio with URAMSES.sln"
+	@echo "Run from the MSYS2 MinGW 64-bit shell. For the Intel oneAPI route,"
+	@echo "use Visual Studio with URAMSES.sln instead."
 
 # Check dependencies
 check-deps:
 	@echo "Checking dependencies..."
 	@echo ""
 	@echo "Checking for gfortran..."
-	@if ! command -v gfortran > /dev/null 2>&1; then \
-		echo "ERROR: gfortran not found. Please install gfortran:"; \
-		echo "  Ubuntu/Debian: sudo apt install gfortran"; \
-		echo "  Fedora/RHEL:   sudo dnf install gcc-gfortran"; \
-		echo "  Arch Linux:    sudo pacman -S gcc-fortran"; \
+	@if ! command -v $(FC) > /dev/null 2>&1; then \
+		echo "ERROR: $(FC) not found. Install it from an MSYS2 shell:"; \
+		echo "  pacman -S mingw-w64-x86_64-gcc-fortran"; \
 		exit 1; \
 	else \
-		echo "  Found: $$(gfortran --version | head -n1)"; \
+		echo "  Found: $$($(FC) --version | head -n1)"; \
+	fi
+	@echo ""
+	@echo "Checking for OpenBLAS..."
+	@if pkg-config --exists openblas > /dev/null 2>&1; then \
+		echo "  Found: OpenBLAS $$(pkg-config --modversion openblas)"; \
+	else \
+		echo "ERROR: OpenBLAS not found. Install it from an MSYS2 shell:"; \
+		echo "  pacman -S mingw-w64-x86_64-openblas"; \
+		exit 1; \
 	fi
 	@echo ""
 	@echo "Checking for pre-compiled modules..."
@@ -135,13 +171,32 @@ check-deps:
 		echo "ERROR: Module directory '$(MOD_DIR)' not found."; \
 		exit 1; \
 	fi
-	@if [ ! -f "$(MOD_DIR)/libramses.a" ]; then \
-		echo "ERROR: Pre-compiled library '$(MOD_DIR)/libramses.a' not found."; \
+	@if [ ! -f "$(RAMSES_LIB)" ]; then \
+		echo "ERROR: Pre-compiled library '$(RAMSES_LIB)' not found."; \
 		exit 1; \
 	fi
-	@echo "  Found: $(MOD_DIR)/libramses.a"
+	@echo "  Found: $(RAMSES_LIB)"
 	@MOD_COUNT=$$(ls -1 $(MOD_DIR)/*.mod 2>/dev/null | wc -l); \
 	echo "  Found: $$MOD_COUNT module files in $(MOD_DIR)/"
+	@echo ""
+	@echo "Checking gfortran module compatibility..."
+	@KIT_VER=$$(gzip -dc $(MOD_DIR)/bus.mod 2>/dev/null | head -c 256 | sed -n "s/.*module version '\([0-9]*\)'.*/\1/p"); \
+	TMPD=$$(mktemp -d); \
+	printf 'module probe_mod\nend module probe_mod\n' > $$TMPD/probe.f90; \
+	$(FC) -c $$TMPD/probe.f90 -o $$TMPD/probe.o -J$$TMPD > /dev/null 2>&1 || true; \
+	FC_VER=$$(gzip -dc $$TMPD/probe_mod.mod 2>/dev/null | head -c 256 | sed -n "s/.*module version '\([0-9]*\)'.*/\1/p"); \
+	$(RMDIR) $$TMPD; \
+	if [ -z "$$KIT_VER" ] || [ -z "$$FC_VER" ]; then \
+		echo "  Skipped: could not determine module versions"; \
+	elif [ "$$KIT_VER" != "$$FC_VER" ]; then \
+		echo "ERROR: $(MOD_DIR)/ holds GFORTRAN module version $$KIT_VER but $(FC) emits version $$FC_VER."; \
+		echo "The .mod files can only be read by the gfortran release that wrote them."; \
+		echo "Update the MSYS2 toolchain from an MSYS2 shell:"; \
+		echo "  pacman -Syu mingw-w64-x86_64-gcc-fortran"; \
+		exit 1; \
+	else \
+		echo "  OK: module version $$KIT_VER matches $(FC)"; \
+	fi
 	@echo ""
 	@echo "All dependencies satisfied."
 	@echo ""
@@ -159,10 +214,10 @@ $(OBJ_DIR): | $(OUT_DIR)
 	$(MKDIR) $(OBJ_DIR)
 
 # Build shared library
-$(OUT_DIR)/$(TARGET_SO): $(OBJS) | $(OUT_DIR)
+$(OUT_DIR)/$(TARGET_DLL): $(OBJS) | $(OUT_DIR)
 	@echo ""
-	@echo "Linking $(TARGET_SO)..."
-	$(FC) $(LDFLAGS_SO) -o $@ $(OBJS) $(LIBS)
+	@echo "Linking $(TARGET_DLL)..."
+	$(FC) $(LDFLAGS_DLL) -o $@ $(OBJS) $(LIBS)
 	@echo ""
 	@echo "Shared library built: $@"
 

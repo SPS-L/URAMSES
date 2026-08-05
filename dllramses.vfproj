@@ -53,9 +53,7 @@
 	<Files>
 		<Filter Name="my_models">
 			<File RelativePath=".\my_models\exc_ENTSOE_lim.f90"/>
-			<File RelativePath=".\my_models\exc_GENERIC3.f90"/>
 			<File RelativePath=".\my_models\inj_AIR_COND1_mod.f90"/>
-			<File RelativePath=".\my_models\tor_ENTSOE_simp.f90"/>
 		</Filter>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 			<File RelativePath=".\src\c_interface.f90"/>

@@ -1,5 +1,11 @@
 ## Dockerfile
 
+This route always builds the **Linux** artifact (`ramses.so` via
+`Makefile.gfortran` and `modules_lin/`), whatever the host. It is the
+recommended option on Intel Macs, for which no pre-compiled RAMSES kit is
+published. For a native build, use `Makefile.macos` (Apple Silicon) or
+`Makefile.mingw` (Windows/MSYS2) instead.
+
 Place this at the root of your `stepss-uramses` clone (alongside `Makefile.gfortran`):
 
 ```dockerfile
