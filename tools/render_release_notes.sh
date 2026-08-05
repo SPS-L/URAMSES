@@ -25,11 +25,11 @@ done
 # One aligned key/value pair out of a BUILDINFO.txt.
 bi() { sed -n "s/^$2[[:space:]]\{1,\}//p" "$1" | head -n1; }
 
-# The kits are stamped by stepss-ramses CI, which records `consume_with` as a
-# bare `Makefile.<plat>`. URAMSES keeps its Makefiles in `build/`, so prefix a
-# bare filename here rather than emit a path that does not exist. Already-
-# qualified values pass through, so this stays correct if RAMSES starts
-# writing the full path.
+# `consume_with` is stamped into the kit by stepss-ramses CI, which now writes
+# the qualified `build/Makefile.<plat>` and needs no help here. Kits stamped
+# before that change carry a bare `Makefile.<plat>`, so prefix those rather
+# than publish a path that no longer resolves. Qualified values pass through
+# untouched; both directions are pinned in test_render_release_notes.sh.
 row() {   # row <buildinfo-file>
     consume="$(bi "$1" consume_with)"
     case "$consume" in
