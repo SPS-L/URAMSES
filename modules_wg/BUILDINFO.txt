@@ -1,0 +1,13 @@
+kit_dir          modules_wg
+ramses_tag       v3.52
+ramses_commit    36bc12f4cd36a4142c0aac94961037a583a308ef
+built_utc        2026-08-05T21:32:41Z
+runner_image     windows-latest (MSYS2 MINGW64)
+compiler         GNU Fortran (Rev5, Built by MSYS2 project) 16.1.0
+target           x86_64-w64-mingw32
+mod_abi_version  16
+fflags           -O2 -cpp -fopenmp -fimplicit-none -ffree-line-length-none -ffree-form -W -g -fPIC -DDLL
+ldflags          -fopenmp -static
+blas             mingw-w64-x86_64-openblas 0.3.33-3
+runtime_floor    static - self-contained, no MSYS2 runtime required
+consume_with     build/Makefile.windows
