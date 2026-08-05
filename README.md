@@ -327,6 +327,10 @@ cat modules_mac/BUILDINFO.txt          # macOS arm64
 cat modules_win_gfortran/BUILDINFO.txt # Windows MinGW
 ```
 
+These files appear once the kit-sync CI has refreshed a kit at least once;
+until then `check-deps` reports the kit as predating provenance tracking
+instead of printing a compiler.
+
 `check-deps` compares your compiler against the kit and fails early on a
 mismatch, naming both module versions:
 

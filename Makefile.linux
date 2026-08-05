@@ -126,14 +126,16 @@ check-deps:
 	@echo "Checking dependencies..."
 	@echo ""
 	@echo "Checking for gfortran..."
-	@if ! command -v gfortran > /dev/null 2>&1; then \
-		echo "ERROR: gfortran not found. Please install gfortran:"; \
+	@if ! command -v $(FC) > /dev/null 2>&1; then \
+		echo "ERROR: $(FC) not found. Please install gfortran:"; \
 		echo "  Ubuntu/Debian: sudo apt install gfortran"; \
 		echo "  Fedora/RHEL:   sudo dnf install gcc-gfortran"; \
 		echo "  Arch Linux:    sudo pacman -S gcc-fortran"; \
+		echo "If your distribution's default gfortran is the wrong generation, pass a versioned one explicitly:"; \
+		echo "  make -f Makefile.linux FC=gfortran-11"; \
 		exit 1; \
 	else \
-		echo "  Found: $$(gfortran --version | head -n1)"; \
+		echo "  Found: $$($(FC) --version | head -n1)"; \
 	fi
 	@echo ""
 	@echo "Checking for pre-compiled modules..."
