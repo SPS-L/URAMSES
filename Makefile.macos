@@ -203,24 +203,8 @@ endif
 	@MOD_COUNT=$$(ls -1 $(MOD_DIR)/*.mod 2>/dev/null | wc -l); \
 	echo "  Found: $$MOD_COUNT module files in $(MOD_DIR)/"
 	@echo ""
-	@echo "Checking gfortran module compatibility..."
-	@KIT_VER=$$(gzip -dc $(MOD_DIR)/bus.mod 2>/dev/null | head -c 256 | sed -n "s/.*module version '\([0-9]*\)'.*/\1/p"); \
-	TMPD=$$(mktemp -d); \
-	printf 'module probe_mod\nend module probe_mod\n' > $$TMPD/probe.f90; \
-	$(FC) -c $$TMPD/probe.f90 -o $$TMPD/probe.o -J$$TMPD > /dev/null 2>&1 || true; \
-	FC_VER=$$(gzip -dc $$TMPD/probe_mod.mod 2>/dev/null | head -c 256 | sed -n "s/.*module version '\([0-9]*\)'.*/\1/p"); \
-	$(RMDIR) $$TMPD; \
-	if [ -z "$$KIT_VER" ] || [ -z "$$FC_VER" ]; then \
-		echo "  Skipped: could not determine module versions"; \
-	elif [ "$$KIT_VER" != "$$FC_VER" ]; then \
-		echo "ERROR: $(MOD_DIR)/ holds GFORTRAN module version $$KIT_VER but $(FC) emits version $$FC_VER."; \
-		echo "The .mod files can only be read by the gfortran release that wrote them."; \
-		echo "Install a matching gfortran (brew install gcc) and if it is versioned, pass it:"; \
-		echo "  make -f Makefile.macos FC=gfortran-15"; \
-		exit 1; \
-	else \
-		echo "  OK: module version $$KIT_VER matches $(FC)"; \
-	fi
+	@echo "Checking module kit and gfortran compatibility..."
+	@bash tools/check_kit.sh $(MOD_DIR) $(FC) macos
 	@echo ""
 	@echo "All dependencies satisfied."
 	@echo ""

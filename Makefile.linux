@@ -149,6 +149,9 @@ check-deps:
 	@MOD_COUNT=$$(ls -1 $(MOD_DIR)/*.mod 2>/dev/null | wc -l); \
 	echo "  Found: $$MOD_COUNT module files in $(MOD_DIR)/"
 	@echo ""
+	@echo "Checking module kit and gfortran compatibility..."
+	@bash tools/check_kit.sh $(MOD_DIR) $(FC) linux
+	@echo ""
 	@echo "All dependencies satisfied."
 	@echo ""
 
