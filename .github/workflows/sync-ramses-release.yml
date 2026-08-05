@@ -124,6 +124,12 @@ jobs:
       # repository by the refresh step above, so GitHub's own source archive
       # already carries them and a copy as a release asset would be the same
       # bytes a second time.
+      #
+      # upload-artifact roots the archive at the least common ancestor of its
+      # search paths, so a lone `notes/**` strips the `notes/` prefix and the
+      # release job's paths must match that. Keep the two in step: this used
+      # to list `kits/*.zip` as well, which made the workspace root the LCA
+      # and kept the prefix.
       - uses: actions/upload-artifact@v4
         with:
           name: release-inputs
@@ -333,13 +339,14 @@ jobs:
           echo "OK: master is now $HEAD_SHA"
           echo "moved=true" >> "$GITHUB_OUTPUT"
 
+      # Paths are prefix-free: see the upload-artifact note in the fetch job.
       - name: Render the release notes
         run: |
           bash tools/render_release_notes.sh \
-            inputs/notes/body.md \
-            inputs/notes/buildinfo/lin.txt \
-            inputs/notes/buildinfo/mac.txt \
-            inputs/notes/buildinfo/win.txt > release-notes.md
+            inputs/body.md \
+            inputs/buildinfo/lin.txt \
+            inputs/buildinfo/mac.txt \
+            inputs/buildinfo/win.txt > release-notes.md
           cat release-notes.md
 
       - name: Publish the release
@@ -349,7 +356,7 @@ jobs:
           HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          TITLE="$(cat inputs/notes/title.txt)"
+          TITLE="$(cat inputs/title.txt)"
           [ -n "$TITLE" ] || TITLE="URAMSES $TAG"
           # --target creates the tag from HEAD_SHA as part of publishing the
           # release, instead of a separate `git tag` + `git push` beforehand.
