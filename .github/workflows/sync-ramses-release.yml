@@ -1,0 +1,344 @@
+name: sync-ramses-release
+
+# Fired by stepss-ramses when it publishes a release. Refreshes the three
+# gfortran module kits, proves they compile on every route, and only then
+# moves master and cuts a matching URAMSES release.
+on:
+  repository_dispatch:
+    types: [ramses-release]
+
+permissions:
+  contents: read
+
+# Two RAMSES releases in quick succession must not race for master.
+concurrency:
+  group: ramses-sync
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+      branch: ${{ steps.commit.outputs.branch }}
+      head_sha: ${{ steps.commit.outputs.head_sha }}
+      base_sha: ${{ steps.commit.outputs.base_sha }}
+    steps:
+      # The payload is untrusted input: validate its shape, and never let it
+      # reach a run: script except through env.
+      - name: Validate dispatch payload
+        id: vars
+        env:
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "FAIL: refusing tag '$TAG' (must match ^v[0-9])"; exit 1 ;;
+          esac
+          printf '%s' "$TAG" | grep -qE '^v[0-9][0-9A-Za-z.+-]*$' \
+            || { echo "FAIL: tag '$TAG' has unexpected characters"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Syncing RAMSES $TAG"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse to re-release an existing tag
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "FAIL: tag $TAG already exists in stepss-uramses"
+            exit 1
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "FAIL: release $TAG already exists in stepss-uramses"
+            exit 1
+          fi
+          echo "OK: $TAG is free"
+
+      - name: Download the RAMSES kits
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+          GH_TOKEN: ${{ secrets.RAMSES_READ_TOKEN }}
+        run: |
+          mkdir -p kits
+          gh release download "$TAG" \
+            --repo SPS-L/stepss-ramses \
+            --pattern 'uramses-modules_*.zip' \
+            --dir kits
+          ls -l kits
+          for f in uramses-modules_lin-"$TAG".zip \
+                   uramses-modules_mac-"$TAG".zip \
+                   uramses-modules_win_gfortran-"$TAG".zip; do
+            [ -f "kits/$f" ] || { echo "FAIL: RAMSES $TAG has no $f"; exit 1; }
+          done
+
+      - name: Capture the RAMSES release title and body
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+          GH_TOKEN: ${{ secrets.RAMSES_READ_TOKEN }}
+        run: |
+          mkdir -p notes
+          # Read under our own token rather than trusting the dispatch payload.
+          gh release view "$TAG" --repo SPS-L/stepss-ramses --json body -q .body > notes/body.md
+          gh release view "$TAG" --repo SPS-L/stepss-ramses --json name -q .name > notes/title.txt
+          echo "Title: $(cat notes/title.txt)"
+
+      - name: Refresh the three kits
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+        run: |
+          bash tools/refresh_kit.sh "kits/uramses-modules_lin-$TAG.zip" \
+            modules_lin libramses.a "$TAG"
+          bash tools/refresh_kit.sh "kits/uramses-modules_mac-$TAG.zip" \
+            modules_mac libramses.a "$TAG"
+          bash tools/refresh_kit.sh "kits/uramses-modules_win_gfortran-$TAG.zip" \
+            modules_win_gfortran libramses.lib "$TAG"
+
+      - name: Stash the kit metadata for the release job
+        run: |
+          mkdir -p notes/buildinfo
+          cp modules_lin/BUILDINFO.txt           notes/buildinfo/lin.txt
+          cp modules_mac/BUILDINFO.txt           notes/buildinfo/mac.txt
+          cp modules_win_gfortran/BUILDINFO.txt  notes/buildinfo/win.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-inputs
+          path: |
+            notes/**
+            kits/*.zip
+          if-no-files-found: error
+
+      - name: Commit to a sync branch
+        id: commit
+        env:
+          TAG: ${{ steps.vars.outputs.tag }}
+        run: |
+          BRANCH="sync/ramses-$TAG"
+          BASE_SHA="$(git rev-parse HEAD)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          # -A stages deletions too, which is how modules dropped by this
+          # RAMSES release leave the tree.
+          git add -A modules_lin modules_mac modules_win_gfortran
+          git status --short
+          # BUILDINFO.txt carries the tag, commit and timestamp, so there is
+          # always a diff; --allow-empty covers the degenerate case anyway so
+          # the tag always has a commit to point at.
+          git commit --allow-empty \
+            -m "Update module kits to the RAMSES $TAG gfortran builds"
+          git push origin "$BRANCH"
+          echo "branch=$BRANCH"                    >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(git rev-parse HEAD)"    >> "$GITHUB_OUTPUT"
+          echo "base_sha=$BASE_SHA"                >> "$GITHUB_OUTPUT"
+
+  # The three build jobs pin the same runner images stepss-ramses builds on.
+  # A .mod is readable only by the gfortran generation that wrote it, so
+  # ubuntu-latest here would pair an ABI-16 compiler with the ABI-15 kit.
+  build-linux:
+    needs: [fetch]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.fetch.outputs.branch }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gfortran libopenblas-dev
+
+      - name: Check the kit against this compiler
+        run: make -f Makefile.linux check-deps
+
+      - name: Build
+        run: make -f Makefile.linux clean all
+
+      - name: Assert build outputs
+        run: |
+          for f in Release_gnu_l/ramses.so Release_gnu_l/dynsim; do
+            [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+  build-macos:
+    needs: [fetch]
+    runs-on: macos-15  # Apple Silicon (arm64), matching the RAMSES kit
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.fetch.outputs.branch }}
+
+      - name: Install dependencies
+        run: |
+          brew install gcc openblas
+          # Runner images ship only versioned gfortran-NN binaries; the
+          # Makefile expects plain `gfortran`.
+          if ! command -v gfortran >/dev/null 2>&1; then
+            latest="$(/bin/ls "$(brew --prefix)"/bin/gfortran-* 2>/dev/null | sort -V | tail -n1)"
+            [ -n "$latest" ] || { echo "FAIL: no gfortran found"; exit 1; }
+            sudo mkdir -p /usr/local/bin
+            sudo ln -sf "$latest" /usr/local/bin/gfortran
+          fi
+          gfortran --version | head -n1
+
+      - name: Check the kit against this compiler
+        run: make -f Makefile.macos check-deps
+
+      - name: Build
+        run: make -f Makefile.macos clean all
+
+      - name: Assert build outputs
+        run: |
+          for f in Release_gnu_m/ramses.so Release_gnu_m/dynsim; do
+            [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+  build-windows:
+    needs: [fetch]
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.fetch.outputs.branch }}
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            make
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-gcc-fortran
+            mingw-w64-x86_64-openblas
+
+      - name: Check the kit against this compiler
+        run: make -f Makefile.windows check-deps
+
+      - name: Build
+        run: make -f Makefile.windows clean all
+
+      - name: Assert build outputs
+        run: |
+          for f in Release_gnu_w/ramses.dll Release_gnu_w/dynsim.exe; do
+            [ -s "$f" ] || { echo "FAIL: missing or empty $f"; exit 1; }
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+  release:
+    needs: [fetch, build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-inputs
+          path: inputs
+
+      - name: Fast-forward master
+        env:
+          HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
+          BASE_SHA: ${{ needs.fetch.outputs.base_sha }}
+        run: |
+          git fetch origin master
+          CURRENT="$(git rev-parse origin/master)"
+          if [ "$CURRENT" != "$BASE_SHA" ]; then
+            echo "FAIL: master moved from $BASE_SHA to $CURRENT while the kits were building."
+            echo "Rebasing would publish a tree that was never built. Re-run this"
+            echo "workflow once master is settled."
+            exit 1
+          fi
+          # Rejected by the server if it is not a fast-forward.
+          git push origin "$HEAD_SHA:refs/heads/master"
+          echo "OK: master is now $HEAD_SHA"
+
+      - name: Tag the release commit
+        env:
+          TAG: ${{ needs.fetch.outputs.tag }}
+          HEAD_SHA: ${{ needs.fetch.outputs.head_sha }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$HEAD_SHA" -m "URAMSES $TAG"
+          git push origin "refs/tags/$TAG"
+
+      - name: Render the release notes
+        run: |
+          bash tools/render_release_notes.sh \
+            inputs/notes/body.md \
+            inputs/notes/buildinfo/lin.txt \
+            inputs/notes/buildinfo/mac.txt \
+            inputs/notes/buildinfo/win.txt > release-notes.md
+          cat release-notes.md
+
+      - name: Publish the release
+        env:
+          TAG: ${{ needs.fetch.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="$(cat inputs/notes/title.txt)"
+          [ -n "$TITLE" ] || TITLE="URAMSES $TAG"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TITLE" \
+            --notes-file release-notes.md \
+            inputs/kits/*.zip
+
+      - name: Delete the sync branch
+        env:
+          BRANCH: ${{ needs.fetch.outputs.branch }}
+        run: git push origin --delete "$BRANCH"
+
+  report-failure:
+    needs: [fetch, build-linux, build-macos, build-windows, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    steps:
+      - name: File or update an issue
+        env:
+          TAG: ${{ github.event.client_payload.tag }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="RAMSES $TAG: kit sync failed"
+          BODY="The sync-ramses-release workflow failed for RAMSES \`$TAG\`.
+
+          Run: $RUN_URL
+
+          \`master\` was not moved and no release was created. The sync branch
+          \`sync/ramses-$TAG\` is left in place for inspection; delete it once
+          the cause is fixed and re-run the workflow from the Actions UI."
+          EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "$TITLE in:title" --json number -q '.[0].number')"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+            echo "Commented on existing issue #$EXISTING"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" --body "$BODY" --label ci
+            echo "Opened a new issue"
+          fi
