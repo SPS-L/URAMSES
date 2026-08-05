@@ -313,6 +313,38 @@ All compiled files will be created in `Release_intel_w64/`:
 - `ramses.dll` - For PyRAMSES/STEPSS integration
 - `dynsim.exe` - Standalone executable
 
+## Which compiler do I need?
+
+The `modules_*/` directories ship RAMSES pre-compiled. A gfortran `.mod` file
+can only be read by the compiler generation that wrote it, so building your
+own models needs a gfortran matching the kit for your platform.
+
+Each kit records exactly what built it:
+
+```sh
+cat modules_lin/BUILDINFO.txt          # Linux
+cat modules_mac/BUILDINFO.txt          # macOS arm64
+cat modules_win_gfortran/BUILDINFO.txt # Windows MinGW
+```
+
+`check-deps` compares your compiler against the kit and fails early on a
+mismatch, naming both module versions:
+
+```sh
+make -f Makefile.linux check-deps
+```
+
+If your distribution's default gfortran is the wrong generation, install a
+matching one and pass it explicitly:
+
+```sh
+make -f Makefile.linux FC=gfortran-11
+```
+
+The same information appears in the toolchain table at the top of every
+release. The Intel kit in `modules/` (used by `URAMSES.sln`) is maintained by
+hand — see `modules/BUILDINFO.txt`.
+
 ## Adding Custom Models
 
 ### Step-by-Step Process

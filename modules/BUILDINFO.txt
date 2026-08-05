@@ -1,0 +1,20 @@
+kit_dir          modules
+ramses_tag       unknown
+ramses_commit    unknown
+built_utc        unknown
+runner_image     hand-built, not CI
+compiler         Intel oneAPI Fortran (ifort/ifx) - exact version unrecorded
+target           x86_64-pc-windows-intel
+mod_abi_version  n/a (Intel module format, not GFORTRAN)
+fflags           unknown
+ldflags          unknown
+blas             Intel MKL
+runtime_floor    Windows x64 with Intel oneAPI redistributables
+consume_with     URAMSES.sln
+
+This kit is maintained by hand and is NOT refreshed by the RAMSES kit-sync
+CI, which produces gfortran modules only. Intel .mod files are a different
+format and cannot be substituted.
+
+When you next rebuild this kit with Intel oneAPI, replace the `unknown`
+values above so the staleness stops being invisible.

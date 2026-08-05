@@ -47,6 +47,36 @@ Constraints worth knowing before editing these files:
 Kits come from the matching `stepss-ramses` release, e.g.
 `uramses-modules_{lin,mac,win_gfortran}-v3.51.zip` for RAMSES v3.51.
 
+## Module kits are CI-managed
+
+`modules_lin/`, `modules_mac/` and `modules_win_gfortran/` are written by
+`.github/workflows/sync-ramses-release.yml` and must not be hand-edited. When
+stepss-ramses publishes a release it dispatches here; the workflow refreshes
+all three kits from that release's `uramses-modules_*` bundles, builds every
+Makefile on the same runner images RAMSES built on, and only then
+fast-forwards `master` and publishes a matching release under the same tag.
+
+Every kit carries a `BUILDINFO.txt` recording the compiler, `.mod` ABI
+version, flags, BLAS and runtime floor behind it. `tools/check_kit.sh` reads it
+during `check-deps` and refuses a compiler that cannot read the kit.
+
+`modules/` (Intel, consumed by `URAMSES.sln`) is outside all of this and is
+still refreshed by hand.
+
+The runner images in the sync workflow deliberately mirror those in
+stepss-ramses' `release.yml`. Do not "modernise" `ubuntu-22.04` to
+`ubuntu-latest`: it would pair an ABI-16 compiler with an ABI-15 kit and fail
+every build.
+
+Helper scripts in `tools/` each have a `tools/test_*.sh` alongside them. Run
+them after any change:
+
+```sh
+bash tools/test_check_kit.sh
+bash tools/test_refresh_kit.sh
+bash tools/test_render_release_notes.sh
+```
+
 ## Architecture
 
 **Build dependency chain:**
