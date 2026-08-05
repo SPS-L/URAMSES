@@ -55,6 +55,16 @@ fakemod 16 alpha > src_skew/alpha.mod
 buildinfo v9.99 > src_skew/BUILDINFO.txt   # buildinfo() claims ABI 15
 ( cd src_skew && zip -q -j "$TMPD/skew.zip" . -r )
 
+# --- zip where an early .mod agrees but a later one doesn't --------------
+# A one-file sample would miss this: alpha.mod matches the claimed ABI,
+# zeta.mod (later alphabetically) does not.
+mkdir -p src_skew_multi
+printf 'archive' > src_skew_multi/libramses.a
+fakemod 15 alpha > src_skew_multi/alpha.mod   # agrees with claimed ABI 15
+fakemod 16 zeta  > src_skew_multi/zeta.mod    # disagrees
+buildinfo v9.99 > src_skew_multi/BUILDINFO.txt
+( cd src_skew_multi && zip -q -j "$TMPD/skew_multi.zip" . -r )
+
 # --- zip missing BUILDINFO ----------------------------------------------
 mkdir -p src_nobi
 printf 'archive' > src_nobi/libramses.a
@@ -101,6 +111,21 @@ echo "$OUT"
 [ ! -f "$TMPD/modules_lin/sparse_matrix_mod.mod" ] \
     && ok "stale module evicted" || fail "stale sparse_matrix_mod.mod survived"
 
+# --- dotfiles evicted alongside everything else ---------------------------
+# rm -rf DIR/* alone skips names beginning with "." -- a stray .DS_Store or
+# editor swap file would then survive every future refresh forever.
+fresh_target
+mkdir -p "$TMPD/modules_lin/.stale_hidden_dir"
+printf 'ds_store' > "$TMPD/modules_lin/.stale_hidden"
+fakemod 15 leftover > "$TMPD/modules_lin/.stale_hidden_dir/leftover.mod"
+"$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+[ $? -eq 0 ] && ok "refresh with planted dotfiles exits 0" \
+    || fail "refresh with planted dotfiles should exit 0"
+[ ! -e "$TMPD/modules_lin/.stale_hidden" ] \
+    && ok "hidden file evicted" || fail "hidden file .stale_hidden survived"
+[ ! -e "$TMPD/modules_lin/.stale_hidden_dir" ] \
+    && ok "hidden directory evicted" || fail "hidden directory .stale_hidden_dir survived"
+
 # --- tag mismatch --------------------------------------------------------
 fresh_target
 BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
@@ -122,6 +147,18 @@ echo "$OUT" | grep -q "claims .mod ABI 15" && ok "names the claimed ABI" || fail
 echo "$OUT" | grep -q "ABI 16"             && ok "names the actual ABI"  || fail "actual ABI missing"
 AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "ABI skew left the kit untouched" || fail "kit was modified"
+
+# --- ABI skew hiding behind an early agreeing .mod ------------------------
+# Sampling only the first .mod (alpha.mod, which agrees) would miss zeta.mod
+# disagreeing further down the list.
+fresh_target
+BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+OUT="$("$SCRIPT" "$TMPD/skew_multi.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+echo "$OUT"
+[ $RC -eq 1 ] && ok "multi-mod ABI skew exits 1" || fail "multi-mod ABI skew should exit 1"
+echo "$OUT" | grep -q "zeta.mod" && ok "names the offending module" || fail "offending module name missing"
+AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+[ "$BEFORE" = "$AFTER" ] && ok "multi-mod ABI skew left the kit untouched" || fail "kit was modified"
 
 # --- missing BUILDINFO ---------------------------------------------------
 fresh_target
@@ -151,6 +188,34 @@ fresh_target
 
 "$SCRIPT" "$TMPD/good.zip" "$TMPD/no-such-dir" libramses.a v9.99 >/dev/null 2>&1
 [ $? -eq 1 ] && ok "missing target dir exits 1" || fail "missing dir should exit 1"
+
+# --- mktemp -d failure must abort, not silently unpack into cwd ----------
+# A failed mktemp leaves STAGE empty, and `unzip -d ""` unpacks into the
+# caller's cwd instead. We can't make the real mktemp fail cleanly on
+# demand, so shadow it on PATH with one that always fails.
+FAKEBIN="$TMPD/fakebin"
+mkdir -p "$FAKEBIN"
+cat > "$FAKEBIN/mktemp" <<'EOF'
+#!/usr/bin/env bash
+echo "mktemp: simulated failure" >&2
+exit 1
+EOF
+chmod +x "$FAKEBIN/mktemp"
+
+fresh_target
+BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+mkdir -p "$TMPD/cwd_probe"
+(
+    cd "$TMPD/cwd_probe" || exit 1
+    PATH="$FAKEBIN:$PATH" "$SCRIPT" "$TMPD/good.zip" "$TMPD/modules_lin" libramses.a v9.99 >/dev/null 2>&1
+)
+RC=$?
+[ $RC -ne 0 ] && ok "mktemp failure exits non-zero" || fail "mktemp failure should exit non-zero"
+LEFTOVER="$(ls -A "$TMPD/cwd_probe" 2>/dev/null)"
+[ -z "$LEFTOVER" ] && ok "mktemp failure did not scatter files into cwd" \
+    || fail "mktemp failure left files in cwd: $LEFTOVER"
+AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+[ "$BEFORE" = "$AFTER" ] && ok "mktemp failure left the kit untouched" || fail "kit was modified"
 
 echo ""
 if [ "$FAILURES" -eq 0 ]; then
