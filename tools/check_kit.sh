@@ -52,11 +52,15 @@ FIRST_MOD="$(ls -1 "$MOD_DIR"/*.mod 2>/dev/null | sort | head -n1)"
 KIT_VER=""
 [ -n "$FIRST_MOD" ] && KIT_VER="$(mod_abi "$FIRST_MOD")"
 
-TMPD="$(mktemp -d)"
+TMPD="$(mktemp -d)" || { echo "ERROR: could not create a temp directory (mktemp -d failed)."; exit 1; }
+[ -n "$TMPD" ] && [ -d "$TMPD" ] || {
+    echo "ERROR: could not create a temp directory (mktemp -d returned no usable path)."
+    exit 1
+}
+trap 'rm -rf "$TMPD"' EXIT
 printf 'module probe_mod\nend module probe_mod\n' > "$TMPD/probe.f90"
 "$FC" -c "$TMPD/probe.f90" -o "$TMPD/probe.o" -J"$TMPD" >/dev/null 2>&1 || true
 FC_VER="$(mod_abi "$TMPD/probe_mod.mod")"
-rm -rf "$TMPD"
 
 if [ -z "$KIT_VER" ] || [ -z "$FC_VER" ]; then
     echo "  Skipped: could not determine module versions"

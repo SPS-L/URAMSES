@@ -97,6 +97,27 @@ echo "$OUT" | grep -q "Skipped" && ok "reports skip" || fail "no skip notice"
 "$SCRIPT" "$TMPD/does-not-exist" gfortran linux >/dev/null 2>&1
 [ $? -eq 1 ] && ok "missing kit dir exits 1" || fail "missing kit dir should exit 1"
 
+# --- mktemp -d failure must fail clearly, not fall through to "Skipped" --
+# A failed mktemp used to leave TMPD empty, produce a raw shell error from
+# the probe compile, and then report "Skipped" and exit 0 -- silently
+# passing the ABI tripwire. We can't make the real mktemp fail cleanly on
+# demand, so shadow it on PATH with one that always fails, the same
+# technique test_refresh_kit.sh uses.
+FAKEBIN="$TMPD/fakebin"
+mkdir -p "$FAKEBIN"
+cat > "$FAKEBIN/mktemp" <<'EOF'
+#!/usr/bin/env bash
+echo "mktemp: simulated failure" >&2
+exit 1
+EOF
+chmod +x "$FAKEBIN/mktemp"
+
+OUT="$(PATH="$FAKEBIN:$PATH" "$SCRIPT" "$TMPD/good" gfortran linux 2>&1)"; RC=$?
+echo "$OUT"
+[ $RC -eq 1 ] && ok "mktemp failure exits 1" || fail "mktemp failure exited $RC"
+echo "$OUT" | grep -qi "Skipped" && fail "mktemp failure should not fall through to the lenient Skipped path" \
+    || ok "mktemp failure did not silently skip"
+
 echo ""
 if [ "$FAILURES" -eq 0 ]; then
     echo "PASS: all assertions held"
