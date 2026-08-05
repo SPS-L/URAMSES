@@ -187,7 +187,7 @@ URAMSES/
 ├── dllramses.vfproj        # DLL project - ramses.dll (Windows/Intel)
 ├── exeramses.vfproj        # Executable project - dynsim.exe (Windows/Intel)
 ├── MDL.vfproj              # Model library project - ramsesmdl.dll (Windows/Intel)
-├── Makefile.linux       # Makefile for Linux builds
+├── Makefile.linux          # Makefile for Linux builds
 ├── Makefile.macos          # Makefile for macOS builds (Apple Silicon)
 ├── Makefile.mingw          # Makefile for Windows/MinGW builds
 ├── docker/                 # Docker build environment
