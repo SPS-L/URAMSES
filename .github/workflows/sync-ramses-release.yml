@@ -273,8 +273,17 @@ jobs:
       master_moved: ${{ steps.ff.outputs.moved }}
       release_published: ${{ steps.publish.outputs.published }}
     steps:
+      # Pinned to the exact commit being published, not the frozen
+      # dispatch-time github.sha -- fix #3 made fetch resolve master at run
+      # time, so a queued or re-run job can now legitimately see a different
+      # master than the one it built from. render_release_notes.sh must run
+      # from the tree that was actually built, not whatever tools/ happens
+      # to look like on master right now. fetch-depth: 0 is kept so
+      # `git fetch origin master` and the HEAD_SHA object are both available
+      # for the fast-forward and tag/release steps below.
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.fetch.outputs.head_sha }}
           fetch-depth: 0
 
       - uses: actions/download-artifact@v4
@@ -295,7 +304,9 @@ jobs:
             echo "Rebasing would publish a tree that was never built. This guard only"
             echo "catches a change happening during THIS run -- fetch resolves master"
             echo "at run time on every attempt, so use 'Re-run all jobs' (not 'Re-run"
-            echo "failed jobs') to retry from the current state."
+            echo "failed jobs') to retry from the current state. Delete the leftover"
+            echo "sync/ramses-\$TAG branch first, or the re-run's own push to it will"
+            echo "be a non-fast-forward and fetch will die on that instead."
             exit 1
           fi
           # Rejected by the server if it is not a fast-forward.
