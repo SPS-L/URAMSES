@@ -78,6 +78,23 @@ echo "$OUT" | grep -q "11.4.0" && ok "linux compiler shown" || fail "linux compi
 echo "$OUT" | grep -q "15.1.0" && ok "macos compiler shown" || fail "macos compiler missing"
 echo "$OUT" | grep -q "14.2.0" && ok "windows compiler shown" || fail "windows compiler missing"
 
+# --- whole rows anchored, column by column --------------------------------
+# A substring grep on each value alone would still pass if row() transposed
+# two columns (e.g. printing mod_abi_version under "Built with" and compiler
+# under ".mod ABI") -- these fixed-string matches on the complete row pin
+# every value to its correct column: Makefile | kit dir | compiler | ABI |
+# target | runtime floor.
+LIN_ROW='| `Makefile.linux` | `modules_lin` | GNU Fortran (Ubuntu) 11.4.0 | 15 | `x86_64-pc-linux-gnu` | glibc 2.35 |'
+MAC_ROW='| `Makefile.macos` | `modules_mac` | GNU Fortran (Homebrew) 15.1.0 | 16 | `aarch64-apple-darwin24` | macOS 15 arm64 |'
+WIN_ROW='| `Makefile.windows` | `modules_win_gfortran` | GNU Fortran (MinGW) 14.2.0 | 16 | `x86_64-w64-mingw32` | static |'
+
+echo "$OUT" | grep -qF "$LIN_ROW" && ok "linux row matches column layout exactly" \
+    || fail "linux row does not match expected column layout: '$LIN_ROW'"
+echo "$OUT" | grep -qF "$MAC_ROW" && ok "macos row matches column layout exactly" \
+    || fail "macos row does not match expected column layout: '$MAC_ROW'"
+echo "$OUT" | grep -qF "$WIN_ROW" && ok "windows row matches column layout exactly" \
+    || fail "windows row does not match expected column layout: '$WIN_ROW'"
+
 # three data rows plus a header and a separator
 ROWS="$(echo "$OUT" | grep -c '^| ')"
 [ "$ROWS" -eq 5 ] && ok "table has 5 pipe rows" || fail "table has $ROWS pipe rows, want 5"
