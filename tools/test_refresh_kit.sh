@@ -24,14 +24,14 @@ kit_dir          modules_l
 ramses_tag       $1
 ramses_commit    deadbeef
 built_utc        2026-09-01T10:12:44Z
-runner_image     ubuntu-22.04
-compiler         GNU Fortran (Test) 11.4.0
+runner_image     ubuntu-24.04
+compiler         GNU Fortran (Test) 13.3.0
 target           x86_64-pc-linux-gnu
 mod_abi_version  15
 fflags           -O2
 ldflags          -fopenmp
-blas             OpenBLAS 0.3.20
-runtime_floor    glibc 2.35
+blas             OpenBLAS 0.3.26
+runtime_floor    glibc 2.39
 consume_with     Makefile.linux
 EOF
 }

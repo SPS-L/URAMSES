@@ -76,9 +76,10 @@ echo "ERROR: $MOD_DIR/ holds GFORTRAN module version $KIT_VER but $FC emits vers
 echo "The .mod files can only be read by the gfortran release that wrote them."
 case "$PLATFORM" in
     linux)
-        echo "Install a matching gfortran and pass it explicitly, e.g. on Ubuntu:"
-        echo "  sudo apt install gfortran-11"
-        echo "  make -f build/Makefile.linux FC=gfortran-11"
+        echo "Install a matching gfortran and pass it explicitly, e.g. on Ubuntu"
+        echo "(the kit's own compiler is printed above; adjust the number to match):"
+        echo "  sudo apt install gfortran-13"
+        echo "  make -f build/Makefile.linux FC=gfortran-13"
         ;;
     macos)
         echo "Install a matching gfortran (brew install gcc) and if it is versioned, pass it:"

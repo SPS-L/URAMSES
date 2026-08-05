@@ -359,8 +359,12 @@ If your distribution's default gfortran is the wrong generation, install a
 matching one and pass it explicitly:
 
 ```sh
-make -f build/Makefile.linux FC=gfortran-11
+make -f build/Makefile.linux FC=gfortran-13
 ```
+
+The `13` there tracks the kit, not this document: the Linux kit is built on
+`ubuntu-24.04`, whose gfortran is 13.x. `cat modules_l/BUILDINFO.txt` for the
+version your copy of the kit actually wants.
 
 The same information appears in the toolchain table at the top of every
 release. The Intel kit in `modules_wi/` (used by `build/msvs/URAMSES.sln`) is maintained by

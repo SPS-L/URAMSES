@@ -161,11 +161,14 @@ jobs:
           echo "base_sha=$BASE_SHA"                >> "$GITHUB_OUTPUT"
 
   # The three build jobs pin the same runner images stepss-ramses builds on.
-  # A .mod is readable only by the gfortran generation that wrote it, so
-  # ubuntu-latest here would pair an ABI-16 compiler with the ABI-15 kit.
+  # A .mod is readable only by the gfortran generation that wrote it, so a
+  # floating `ubuntu-latest` here would silently pair whatever compiler GitHub
+  # promotes next against a kit built by the pinned image over in
+  # stepss-ramses' release.yml. Keep the two literals equal and change them
+  # together, in the same release.
   build-linux:
     needs: [fetch]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       # Pinned to the exact commit the release job will publish, not the

@@ -80,9 +80,17 @@ during `check-deps` and refuses a compiler that cannot read the kit.
 still refreshed by hand.
 
 The runner images in the sync workflow deliberately mirror those in
-stepss-ramses' `release.yml`. Do not "modernise" `ubuntu-22.04` to
-`ubuntu-latest`: it would pair an ABI-16 compiler with an ABI-15 kit and fail
-every build.
+stepss-ramses' `release.yml` — currently `ubuntu-24.04` (gfortran 13.3, `.mod`
+ABI 15). Do not replace that pin with `ubuntu-latest`: the kit is built by the
+pinned image over in stepss-ramses, so a floating image here would pair the
+next compiler GitHub promotes against a kit built by a different one. Bumping
+the image is fine, but bump both repositories in the same release.
+
+The `.mod` ABI is coarser than the compiler version — gfortran 9 through 13 all
+write version 15, and 14 is the next bump — so an image change is not
+automatically an ABI break. `ubuntu-22.04` → `ubuntu-24.04` (gfortran 11.4 →
+13.3) kept ABI 15. What it did move is the **glibc floor**, 2.35 → 2.39: the
+published Linux binaries no longer run on Ubuntu 22.04 or Debian 12.
 
 Helper scripts in `tools/` each have a `tools/test_*.sh` alongside them. Run
 them after any change:
