@@ -4,8 +4,10 @@
 #   refresh_kit.sh <kit-zip> <mod-dir> <expected-lib> <expected-tag>
 #
 # Validates that the zip carries the expected library, at least one .mod, and
-# a BUILDINFO.txt whose ramses_tag matches <expected-tag>. Only then does it
-# empty <mod-dir> and unpack into it.
+# a BUILDINFO.txt whose ramses_tag matches <expected-tag>, whose thirteen keys
+# are all present and non-empty, and whose kit_dir matches the basename of
+# <mod-dir> (so a kit for one platform cannot be installed as another's).
+# Only then does it empty <mod-dir> and unpack into it.
 #
 # Emptying first is the point: it evicts modules a RAMSES release has dropped.
 # sparse_matrix_mod.mod became sparse_matrix_optimized_mod.mod between v3.40
@@ -55,6 +57,28 @@ MOD_COUNT="$(ls -1 "$STAGE"/*.mod 2>/dev/null | wc -l | tr -d ' ')"
 ZIP_TAG="$(sed -n 's/^ramses_tag[[:space:]]\{1,\}//p' "$STAGE/BUILDINFO.txt" | head -n1)"
 if [ "$ZIP_TAG" != "$TAG" ]; then
     echo "FAIL: $(basename "$ZIP") BUILDINFO says ramses_tag '$ZIP_TAG', expected '$TAG'"
+    exit 1
+fi
+
+# All thirteen keys must be present and non-empty. Four of them (kit_dir,
+# compiler, mod_abi_version, consume_with) are cells in the published release
+# table, so a silently missing one ships a release with a blank column.
+BI_KEYS="kit_dir ramses_tag ramses_commit built_utc runner_image compiler target mod_abi_version fflags ldflags blas runtime_floor consume_with"
+for KEY in $BI_KEYS; do
+    VAL="$(sed -n "s/^$KEY[[:space:]]\{1,\}//p" "$STAGE/BUILDINFO.txt" | head -n1)"
+    [ -n "$VAL" ] || {
+        echo "FAIL: $(basename "$ZIP") BUILDINFO.txt is missing or empty key '$KEY'"
+        exit 1
+    }
+done
+
+# kit_dir names which platform directory this kit is for. RAMSES writes it,
+# and it is only ever checked against the caller's <mod-dir> here -- nothing
+# else stops the macOS zip from being installed into modules_lin.
+ZIP_KIT_DIR="$(sed -n 's/^kit_dir[[:space:]]\{1,\}//p' "$STAGE/BUILDINFO.txt" | head -n1)"
+TARGET_BASENAME="$(basename "$MOD_DIR")"
+if [ "$ZIP_KIT_DIR" != "$TARGET_BASENAME" ]; then
+    echo "FAIL: $(basename "$ZIP") BUILDINFO says kit_dir '$ZIP_KIT_DIR', but target directory is '$TARGET_BASENAME'"
     exit 1
 fi
 

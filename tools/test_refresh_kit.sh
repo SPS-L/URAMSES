@@ -71,6 +71,24 @@ printf 'archive' > src_nobi/libramses.a
 fakemod 15 alpha > src_nobi/alpha.mod
 ( cd src_nobi && zip -q -j "$TMPD/nobi.zip" . -r )
 
+# --- zip whose BUILDINFO is missing a required key ------------------------
+# A valid ramses_tag is not enough: the other twelve keys are cells in the
+# published release table, and a silently missing one ships a blank column.
+mkdir -p src_missingkey
+printf 'archive' > src_missingkey/libramses.a
+fakemod 15 alpha > src_missingkey/alpha.mod
+buildinfo v9.99 | grep -v '^mod_abi_version' > src_missingkey/BUILDINFO.txt
+( cd src_missingkey && zip -q -j "$TMPD/missingkey.zip" . -r )
+
+# --- zip whose BUILDINFO names the wrong kit_dir --------------------------
+# kit_dir is written by RAMSES and printed into the release table, but was
+# never checked against the directory it is actually being installed into.
+mkdir -p src_wrongkitdir
+printf 'archive' > src_wrongkitdir/libramses.a
+fakemod 15 alpha > src_wrongkitdir/alpha.mod
+buildinfo v9.99 | sed 's/^kit_dir .*/kit_dir          modules_mac/' > src_wrongkitdir/BUILDINFO.txt
+( cd src_wrongkitdir && zip -q -j "$TMPD/wrongkitdir.zip" . -r )
+
 # --- zip missing the library --------------------------------------------
 mkdir -p src_nolib
 fakemod 15 alpha > src_nolib/alpha.mod
@@ -168,6 +186,29 @@ BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
 AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
 [ "$BEFORE" = "$AFTER" ] && ok "missing BUILDINFO left the kit untouched" \
     || fail "kit was modified"
+
+# --- BUILDINFO missing a required key -------------------------------------
+fresh_target
+BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+OUT="$("$SCRIPT" "$TMPD/missingkey.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+echo "$OUT"
+[ $RC -eq 1 ] && ok "missing key exits 1" || fail "missing key should exit 1"
+echo "$OUT" | grep -q "mod_abi_version" && ok "names the missing key" || fail "missing key not named"
+AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+[ "$BEFORE" = "$AFTER" ] && ok "missing key left the kit untouched" || fail "kit was modified"
+
+# --- BUILDINFO kit_dir does not match the target directory ----------------
+# Feeding one platform's zip at another platform's directory must be caught,
+# not silently installed.
+fresh_target
+BEFORE="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+OUT="$("$SCRIPT" "$TMPD/wrongkitdir.zip" "$TMPD/modules_lin" libramses.a v9.99 2>&1)"; RC=$?
+echo "$OUT"
+[ $RC -eq 1 ] && ok "wrong kit_dir exits 1" || fail "wrong kit_dir should exit 1"
+echo "$OUT" | grep -q "modules_mac" && ok "names the BUILDINFO's kit_dir" || fail "BUILDINFO kit_dir not named"
+echo "$OUT" | grep -q "modules_lin" && ok "names the target directory" || fail "target directory not named"
+AFTER="$(ls "$TMPD/modules_lin" | sort | tr '\n' ' ')"
+[ "$BEFORE" = "$AFTER" ] && ok "wrong kit_dir left the kit untouched" || fail "kit was modified"
 
 # --- missing library -----------------------------------------------------
 fresh_target
