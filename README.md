@@ -309,7 +309,7 @@ The solution contains three projects:
 
 3. **MDL (ramsesmdl.dll)**
    - **Purpose**: Auxiliary project for building a subset of models into a
-     separate library. Its source list is currently **empty** — the models it
+     separate library. Its source list is currently **empty**; the models it
      used to carry are ones the RAMSES library already exports, so they were
      removed to avoid duplicate-symbol link errors. Building it as shipped
      produces an empty `ramsesmdl.dll`
