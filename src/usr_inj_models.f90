@@ -27,6 +27,7 @@ subroutine assoc_inj_ptr(modelname,inj_ptr)
    external inj_vfd_load
    external inj_PQ, inj_IBG, inj_WT3, inj_WT4, inj_BESS, inj_GFOR, inj_GFOL
    external inj_PMU
+   !<<STEPSS-GUI:EXTERNALS>>
    integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
    integer i, ret
 #if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
@@ -83,7 +84,7 @@ subroutine assoc_inj_ptr(modelname,inj_ptr)
       case('inj_PMU')
          inj_ptr=>inj_PMU
 
-
+      !<<STEPSS-GUI:CASES>>
    end select
 
 end subroutine assoc_inj_ptr

@@ -23,6 +23,7 @@ subroutine assoc_dctl_ptr(modelname,dctl_ptr)
    character(len=25):: modelname5                  !< internal name with guaranteed "dctl_" prefix
    procedure(dctl), pointer, intent(out) :: dctl_ptr  !< procedure pointer set to the matched discrete controller
    external dctl_line_prot
+   !<<STEPSS-GUI:EXTERNALS>>
    integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
    integer i, ret
 #if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
@@ -52,8 +53,7 @@ subroutine assoc_dctl_ptr(modelname,dctl_ptr)
        case('dctl_line_prot')
          dctl_ptr=>dctl_line_prot
 
-   case default
-
+   !<<STEPSS-GUI:CASES>>
    end select
 
 end subroutine assoc_dctl_ptr

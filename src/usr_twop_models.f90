@@ -23,6 +23,7 @@ subroutine assoc_twop_ptr(modelname,twop_ptr)
    character(len=25):: modelname5                  !< internal name with guaranteed "twop_" prefix
    procedure(twop_injector), pointer, intent(out) :: twop_ptr  !< procedure pointer set to the matched two-port model
    external twop_HVDC_LCC,  twop_HVDC_VSC, twop_HVDC_VSC_SC, twop_DCL_WCL
+   !<<STEPSS-GUI:EXTERNALS>>
    integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
    integer i, ret
 #if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
@@ -52,8 +53,8 @@ subroutine assoc_twop_ptr(modelname,twop_ptr)
    case('twop_HVDC_LCC')
          twop_ptr=>twop_HVDC_LCC
 
-!   case('twop_HVDC_VSC')
-!         twop_ptr => twop_HVDC_VSC
+   case('twop_HVDC_VSC')
+         twop_ptr => twop_HVDC_VSC
 
    case('twop_DCL_WCL')
          twop_ptr => twop_DCL_WCL
@@ -61,6 +62,7 @@ subroutine assoc_twop_ptr(modelname,twop_ptr)
    case('twop_HVDC_VSC_SC')
          twop_ptr => twop_HVDC_VSC_SC
 
+   !<<STEPSS-GUI:CASES>>
    end select
 
 end subroutine assoc_twop_ptr

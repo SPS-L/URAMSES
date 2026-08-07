@@ -34,6 +34,7 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
    ! Models built from custom_models/ in this repository. Declare your own
    ! here alongside the pre-compiled ones above.
    external :: exc_ENTSOE_lim
+   !<<STEPSS-GUI:EXTERNALS>>
    integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
    integer i, ret
 #if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
@@ -95,7 +96,7 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
       case('exc_ENTSOE_lim')
          exc_ptr=>exc_ENTSOE_lim
 
-      case default
+      !<<STEPSS-GUI:CASES>>
    end select
 
 end subroutine assoc_exciter_ptr

@@ -24,6 +24,7 @@ subroutine assoc_torque_ptr(modelname,tor_ptr)
    procedure(torque), pointer, intent(out) :: tor_ptr  !< procedure pointer set to the matched torque model
    external :: tor_ENTSOE_simp, tor_DEGOV1
    external :: tor_hygov, tor_GAST, tor_TGOV1D
+   !<<STEPSS-GUI:EXTERNALS>>
    integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
    integer i, ret
 #if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
@@ -52,8 +53,6 @@ subroutine assoc_torque_ptr(modelname,tor_ptr)
    case('tor_ENTSOE_simp')
          tor_ptr=>tor_ENTSOE_simp
 
-   !case('tor_sultan')
-   !      tor_ptr=>tor_sultan  
    case('tor_HYGOV')
          tor_ptr=>tor_hygov
    case('tor_GAST')
@@ -63,6 +62,7 @@ subroutine assoc_torque_ptr(modelname,tor_ptr)
    case('tor_DEGOV1')
          tor_ptr=>tor_DEGOV1
 
+   !<<STEPSS-GUI:CASES>>
    end select
 
 end subroutine assoc_torque_ptr
