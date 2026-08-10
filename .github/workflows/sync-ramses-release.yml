@@ -48,7 +48,7 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Syncing RAMSES $TAG"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # repository_dispatch freezes github.sha to the default branch's
           # tip at dispatch time, and a concurrency-queued or re-run job
@@ -130,7 +130,7 @@ jobs:
       # release job's paths must match that. Keep the two in step: this used
       # to list `kits/*.zip` as well, which made the workspace root the LCA
       # and kept the prefix.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: release-inputs
           path: notes/**
@@ -174,7 +174,7 @@ jobs:
       # Pinned to the exact commit the release job will publish, not the
       # mutable branch head, so the tree that was built is provably the
       # tree that ships.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.fetch.outputs.head_sha }}
 
@@ -207,12 +207,12 @@ jobs:
       # Pinned to the exact commit the release job will publish, not the
       # mutable branch head, so the tree that was built is provably the
       # tree that ships.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.fetch.outputs.head_sha }}
 
       # numpy is for the Nordic gate's trajectory comparator.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -257,7 +257,7 @@ jobs:
       # Pinned to the exact commit the release job will publish, not the
       # mutable branch head, so the tree that was built is provably the
       # tree that ships.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.fetch.outputs.head_sha }}
 
@@ -309,12 +309,12 @@ jobs:
       # to look like on master right now. fetch-depth: 0 is kept so
       # `git fetch origin master` and the HEAD_SHA object are both available
       # for the fast-forward and tag/release steps below.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ needs.fetch.outputs.head_sha }}
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: release-inputs
           path: inputs
