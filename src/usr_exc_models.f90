@@ -27,7 +27,7 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
    character(len=20), intent(inout):: modelname    !< model name; "exc_" prefix added if absent
    character(len=24):: modelname4                  !< internal name with guaranteed "exc_" prefix
    procedure(exciter), pointer, intent(inout) :: exc_ptr  !< procedure pointer set to the matched exciter
-   external :: exc_KUNDUR, exc_GENERIC3, exc_GENERIC4
+   external :: exc_KUNDUR, exc_GENERIC
    external :: exc_ENTSOE_simp, exc_ST1A, exc_AC1A, exc_AC4A, exc_IEEET5
    external :: exc_ST1A_IEEEST, exc_ST1A_PSS4B, exc_ST1A_PSS2B
    external :: exc_EXPIC1_PSS2B, exc_SEXS, exc_SEXS_IEEEST
@@ -71,10 +71,8 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
          exc_ptr=>exc_SEXS
       case('exc_SEXS_IEEEST')
          exc_ptr=>exc_SEXS_IEEEST
-      case('exc_GENERIC3')
-         exc_ptr=>exc_GENERIC3
-      case('exc_GENERIC4')
-         exc_ptr=>exc_GENERIC4
+      case('exc_GENERIC')
+         exc_ptr=>exc_GENERIC
       case('exc_AC1A')
          exc_ptr=>exc_AC1A
       case('exc_AC4A')
