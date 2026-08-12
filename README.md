@@ -2,7 +2,7 @@
 
 **User-defined device model framework for the RAMSES power system simulator**
 
-URAMSES lets you compile your own Fortran device models and link them against a pre-compiled RAMSES library, as part of the [STEPSS](https://stepss.sps-lab.org/) power system simulation platform. You write a model subroutine, register it in a router file, and build either a shared library (`ramses.so`/`ramses.dll`) loaded by [stepss](https://stepss.sps-lab.org/pyramses/) or a standalone executable (`dynsim`).
+URAMSES lets you compile your own Fortran device models and link them against a pre-compiled RAMSES library, as part of the [STEPSS](https://stepss.sps-lab.org/) power system simulation platform. You write a model subroutine, register it in a router file, and build either a shared library (`ramses.so`/`ramses.dll`) loaded by [stepss](https://stepss.sps-lab.org/python/) or a standalone executable (`dynsim`).
 
 ## Features
 
@@ -15,7 +15,7 @@ URAMSES lets you compile your own Fortran device models and link them against a 
 
 ## Installation
 
-**Requirements:** gfortran and OpenBLAS (Linux, macOS, Windows/MinGW); or Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows/Intel). To use the compiled models from Python you also need [stepss](https://stepss.sps-lab.org/pyramses/) (`pip install stepss`).
+**Requirements:** gfortran and OpenBLAS (Linux, macOS, Windows/MinGW); or Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows/Intel). To use the compiled models from Python you also need [stepss](https://stepss.sps-lab.org/python/) (`pip install stepss`).
 
 > **gfortran version must match the kit.** Fortran `.mod` files are readable only
 > by the gfortran release that wrote them. Each kit's exact ABI version is
@@ -628,7 +628,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 | Document | Description |
 |----------|-------------|
 | [URAMSES developer guide](https://stepss.sps-lab.org/developer/uramses/) | Building URAMSES and registering user models |
-| [stepss documentation](https://stepss.sps-lab.org/pyramses/) | Python interface that loads the compiled library |
+| [stepss documentation](https://stepss.sps-lab.org/python/) | Python interface that loads the compiled library |
 | [Intel oneAPI HPC Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html) | Windows/Intel compiler setup |
 
 For issues and questions, contact the Sustainable Power Systems Lab (SPS-L) at [info@sps-lab.org](mailto:info@sps-lab.org).
