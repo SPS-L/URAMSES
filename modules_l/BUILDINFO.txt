@@ -1,7 +1,7 @@
 kit_dir          modules_l
-ramses_tag       v3.59
-ramses_commit    13f03f30de84ba69a2c482354dca214ed7dd056e
-built_utc        2026-08-12T06:40:19Z
+ramses_tag       v3.60
+ramses_commit    9d49988061bffdd1b368d44edac4cd1e29a87e4c
+built_utc        2026-08-12T16:20:18Z
 runner_image     ubuntu-24.04
 compiler         GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 target           x86_64-linux-gnu
