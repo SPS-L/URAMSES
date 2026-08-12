@@ -1164,7 +1164,7 @@ integer :: i,j
 fdisturbdesc=c_to_f_string(disturbdesc)
 t_dist_new=disturbtime
 
-write(msg,"('PyRAMSES: Adding disturbance ', f15.6,' ', a)")t_dist_new, trim(fdisturbdesc)
+write(msg,"('stepss: Adding disturbance ', f15.6,' ', a)")t_dist_new, trim(fdisturbdesc)
 call write_msg('add_disturb',msg)
 
 if(nbdist == mxdist)then

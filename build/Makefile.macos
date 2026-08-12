@@ -33,7 +33,7 @@ OUT_DIR = Release_m
 OBJ_DIR = $(OUT_DIR)/obj
 
 # Output files
-# PyRAMSES expects the macOS shared library to be named ramses.so, matching the
+# stepss expects the macOS shared library to be named ramses.so, matching the
 # Linux build; the per-platform libs/mac folder keeps the two apart. Do not
 # rename this to ramses.dylib.
 TARGET_SO = ramses.so
@@ -157,7 +157,7 @@ help:
 	@echo "  help        - Show this help message"
 	@echo ""
 	@echo "Output:"
-	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for PyRAMSES"
+	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for stepss"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
 	@echo "For Linux builds use build/Makefile.linux; for Windows use"

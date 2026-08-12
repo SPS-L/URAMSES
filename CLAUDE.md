@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-URAMSES is a Fortran framework for integrating custom user-defined models into PyRAMSES (Python) and STEPSS (Java) power system simulators. Users write Fortran model subroutines, register them in router files, and compile everything into a shared library (`ramses.so` / `ramses.dll`) or standalone executable (`dynsim`).
+URAMSES is a Fortran framework for integrating custom user-defined models into stepss (Python) and STEPSS (Java) power system simulators. Users write Fortran model subroutines, register them in router files, and compile everything into a shared library (`ramses.so` / `ramses.dll`) or standalone executable (`dynsim`).
 
 ## Build Commands (Linux)
 
@@ -47,7 +47,7 @@ Constraints worth knowing before editing these files:
   their own directory, two levels below the root, hence the `..\..\src\`,
   `..\..\custom_models\`, `..\..\modules_wi` and `..\..\Release_wi` prefixes.
   The two routes resolve paths differently; keep them straight.
-- macOS uses `ramses.so`, **not** `ramses.dylib`. PyRAMSES separates platforms
+- macOS uses `ramses.so`, **not** `ramses.dylib`. stepss separates platforms
   by the `libs/lin`, `libs/mac`, `libs/win` folder, not by filename.
 - `modules_m/` is arm64; macOS builds require Apple Silicon.
 - Each kit's GFORTRAN module ABI version is recorded in its
@@ -195,4 +195,4 @@ Do not copy a model that the linked RAMSES library already exports: defining a s
 
 ## No Test Suite
 
-There is no automated test framework. Models are validated through integration with PyRAMSES or STEPSS simulations.
+There is no automated test framework. Models are validated through integration with stepss or STEPSS simulations.

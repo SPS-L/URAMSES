@@ -2,7 +2,7 @@
 
 **User-defined device model framework for the RAMSES power system simulator**
 
-URAMSES lets you compile your own Fortran device models and link them against a pre-compiled RAMSES library, as part of the [STEPSS](https://stepss.sps-lab.org/) power system simulation platform. You write a model subroutine, register it in a router file, and build either a shared library (`ramses.so`/`ramses.dll`) loaded by [PyRAMSES](https://stepss.sps-lab.org/pyramses/) or a standalone executable (`dynsim`).
+URAMSES lets you compile your own Fortran device models and link them against a pre-compiled RAMSES library, as part of the [STEPSS](https://stepss.sps-lab.org/) power system simulation platform. You write a model subroutine, register it in a router file, and build either a shared library (`ramses.so`/`ramses.dll`) loaded by [stepss](https://stepss.sps-lab.org/pyramses/) or a standalone executable (`dynsim`).
 
 ## Features
 
@@ -10,12 +10,12 @@ URAMSES lets you compile your own Fortran device models and link them against a 
 - **No RAMSES source required**: models link against a pre-compiled RAMSES library shipped per platform: `modules_l/` (Linux/gfortran, `libramses.a`), `modules_m/` (macOS arm64/gfortran, `libramses.a`), `modules_wg/` (Windows/MinGW, `libramses.lib`), and `modules_wi/` (Windows/Intel, `libramses.lib`)
 - **Automatic model discovery in every Makefile build**: Linux, macOS, and Windows/MinGW pick up any `.f90` file placed in `custom_models/` via wildcard; no Makefile edits needed. Only the Intel Visual Studio route needs files added by hand
 - **Four build routes**: gfortran Makefiles for Linux, macOS, and Windows/MinGW; or Visual Studio with Intel oneAPI Fortran (Windows)
-- **Dual outputs**: a shared library for PyRAMSES/STEPSS integration and a standalone `dynsim` executable
+- **Dual outputs**: a shared library for stepss/STEPSS integration and a standalone `dynsim` executable
 - **Example models included**: an ENTSO-E exciter and an air-conditioning load model with parameter files in `custom_models/`
 
 ## Installation
 
-**Requirements:** gfortran and OpenBLAS (Linux, macOS, Windows/MinGW); or Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows/Intel). To use the compiled models from Python you also need [PyRAMSES](https://stepss.sps-lab.org/pyramses/) (`pip install pyramses`).
+**Requirements:** gfortran and OpenBLAS (Linux, macOS, Windows/MinGW); or Visual Studio 2019+ and the Intel oneAPI Fortran compiler (Windows/Intel). To use the compiled models from Python you also need [stepss](https://stepss.sps-lab.org/pyramses/) (`pip install stepss`).
 
 > **gfortran version must match the kit.** Fortran `.mod` files are readable only
 > by the gfortran release that wrote them. Each kit's exact ABI version is
@@ -65,7 +65,7 @@ cannot load. The Makefile refuses to run there.
 
 - **Microsoft Visual Studio** (2019 or later recommended)
 - **Intel oneAPI Fortran Compiler** (formerly Intel Fortran)
-- **PyRAMSES** (Python package) or the **STEPSS** Java interface
+- **stepss** (Python package) or the **STEPSS** Java interface
 
 For installation instructions, see Intel's [oneAPI HPC Toolkit
 documentation](https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html).
@@ -117,18 +117,18 @@ make -f build/Makefile.windows
 3. Build → Build Solution
 4. Run `Release_wi\dynsim.exe`
 
-### Load your models in PyRAMSES
+### Load your models in stepss
 
 ```python
-import pyramses
+import stepss
 
-ram = pyramses.sim('/path/to/URAMSES/Release_l')          # Linux
-# ram = pyramses.sim('/path/to/URAMSES/Release_m')        # macOS
-# ram = pyramses.sim(r'C:\path\to\URAMSES\Release_wg')    # Windows (MinGW)
-# ram = pyramses.sim(r'C:\path\to\URAMSES\Release_wi')    # Windows (Intel)
+ram = stepss.sim('/path/to/URAMSES/Release_l')          # Linux
+# ram = stepss.sim('/path/to/URAMSES/Release_m')        # macOS
+# ram = stepss.sim(r'C:\path\to\URAMSES\Release_wg')    # Windows (MinGW)
+# ram = stepss.sim(r'C:\path\to\URAMSES\Release_wi')    # Windows (Intel)
 ```
 
-PyRAMSES loads `ramses.so` on Linux and macOS, and `ramses.dll` on Windows.
+stepss loads `ramses.so` on Linux and macOS, and `ramses.dll` on Windows.
 
 ## Model Types
 
@@ -223,7 +223,7 @@ make -f build/Makefile.linux help       # Show help
 
 After successful build, the following files will be in `Release_l/`:
 ```
-Release_l/ramses.so   # Shared library for PyRAMSES
+Release_l/ramses.so   # Shared library for stepss
 Release_l/dynsim      # Standalone executable
 ```
 
@@ -231,7 +231,7 @@ Release_l/dynsim      # Standalone executable
 
 `build/Makefile.macos` mirrors the Linux build: it auto-detects sources, links against
 `libramses.a` from `modules_m/`, and writes `Release_m/`. The shared
-library is named `ramses.so`, the same as on Linux, because PyRAMSES keeps the
+library is named `ramses.so`, the same as on Linux, because stepss keeps the
 two apart in per-platform `libs/` folders rather than by filename. Do not rename
 it to `ramses.dylib`.
 
@@ -254,7 +254,7 @@ if your gfortran writes a different `.mod` format version than the kit.
 #### Output
 
 ```
-Release_m/ramses.so   # Shared library for PyRAMSES
+Release_m/ramses.so   # Shared library for stepss
 Release_m/dynsim      # Standalone executable
 ```
 
@@ -282,7 +282,7 @@ Makefile passes `modules_wg/libramses.lib` by explicit path.
 #### Output
 
 ```
-Release_wg/ramses.dll   # Shared library for PyRAMSES
+Release_wg/ramses.dll   # Shared library for stepss
 Release_wg/dynsim.exe   # Standalone executable
 ```
 
@@ -297,8 +297,8 @@ those DLLs next to `ramses.dll`, when loading it from Python.
 The solution contains three projects:
 
 1. **dllramses (ramses.dll)**
-   - **Purpose**: Creates the main dynamic link library for PyRAMSES integration
-   - **Output**: `ramses.dll` - Used by PyRAMSES to access your custom models
+   - **Purpose**: Creates the main dynamic link library for stepss integration
+   - **Output**: `ramses.dll` - Used by stepss to access your custom models
    - **Usage**: Primary project for Python integration on Windows
 
 2. **exeramses (dynsim.exe)**
@@ -314,7 +314,7 @@ The solution contains three projects:
      removed to avoid duplicate-symbol link errors. Building it as shipped
      produces an empty `ramsesmdl.dll`
    - **Output**: `ramsesmdl.dll`
-   - **Usage**: Not needed for either PyRAMSES or standalone use; add your own
+   - **Usage**: Not needed for either stepss or standalone use; add your own
      models to `dllramses` instead
 
 #### Step-by-Step Build Process
@@ -327,7 +327,7 @@ The solution contains three projects:
 #### Output Files
 
 All compiled files will be created in `Release_wi/`:
-- `ramses.dll` - For PyRAMSES/STEPSS integration
+- `ramses.dll` - For stepss/STEPSS integration
 - `dynsim.exe` - Standalone executable
 
 ## Which compiler do I need?
@@ -466,22 +466,22 @@ While not strictly required, following naming conventions helps organization:
 
 ## Using Your Models
 
-### With PyRAMSES (Python)
+### With stepss (Python)
 
 ```python
-import pyramses
+import stepss
 
 # Linux
-ram = pyramses.sim('/path/to/your/URAMSES/Release_l')
+ram = stepss.sim('/path/to/your/URAMSES/Release_l')
 
 # macOS (Apple Silicon)
-ram = pyramses.sim('/path/to/your/URAMSES/Release_m')
+ram = stepss.sim('/path/to/your/URAMSES/Release_m')
 
 # Windows (MinGW)
-ram = pyramses.sim(r'C:\path\to\your\URAMSES\Release_wg')
+ram = stepss.sim(r'C:\path\to\your\URAMSES\Release_wg')
 
 # Windows (Intel)
-ram = pyramses.sim(r'C:\path\to\your\URAMSES\Release_wi')
+ram = stepss.sim(r'C:\path\to\your\URAMSES\Release_wi')
 
 # Your models are now available for use in simulations
 ```
@@ -597,7 +597,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 
 1. **Compilation Errors**: Ensure Intel Fortran compiler is properly installed and configured
 2. **Missing Models**: Verify model names match exactly in association files
-3. **DLL Loading**: Check that the path to `ramses.dll` is correct in PyRAMSES
+3. **DLL Loading**: Check that the path to `ramses.dll` is correct in stepss
 4. **Model Parameters**: Ensure parameter files are properly formatted
 
 ### Debug Tips
@@ -628,7 +628,7 @@ routers instead, as `VFAULT` is in `src/usr_inj_models.f90`.
 | Document | Description |
 |----------|-------------|
 | [URAMSES developer guide](https://stepss.sps-lab.org/developer/uramses/) | Building URAMSES and registering user models |
-| [PyRAMSES documentation](https://stepss.sps-lab.org/pyramses/) | Python interface that loads the compiled library |
+| [stepss documentation](https://stepss.sps-lab.org/pyramses/) | Python interface that loads the compiled library |
 | [Intel oneAPI HPC Toolkit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit.html) | Windows/Intel compiler setup |
 
 For issues and questions, contact the Sustainable Power Systems Lab (SPS-L) at [info@sps-lab.org](mailto:info@sps-lab.org).

@@ -35,7 +35,7 @@ OUT_DIR = Release_wg
 OBJ_DIR = $(OUT_DIR)/obj
 
 # Output files
-# PyRAMSES loads ramses.dll on Windows (ramses.so on Linux/macOS).
+# stepss loads ramses.dll on Windows (ramses.so on Linux/macOS).
 TARGET_DLL = ramses.dll
 TARGET_EXE = dynsim.exe
 
@@ -138,7 +138,7 @@ help:
 	@echo "  help        - Show this help message"
 	@echo ""
 	@echo "Output:"
-	@echo "  $(OUT_DIR)/$(TARGET_DLL)   - Shared library for PyRAMSES"
+	@echo "  $(OUT_DIR)/$(TARGET_DLL)   - Shared library for stepss"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
 	@echo "Run from the MSYS2 MinGW 64-bit shell. For the Intel oneAPI route,"

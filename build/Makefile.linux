@@ -115,7 +115,7 @@ help:
 	@echo "  help        - Show this help message"
 	@echo ""
 	@echo "Output:"
-	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for PyRAMSES"
+	@echo "  $(OUT_DIR)/$(TARGET_SO)   - Shared library for stepss"
 	@echo "  $(OUT_DIR)/$(TARGET_EXE)  - Standalone executable"
 	@echo ""
 	@echo "For macOS use build/Makefile.macos; for Windows use build/Makefile.windows"
