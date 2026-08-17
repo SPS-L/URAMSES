@@ -1,19 +1,15 @@
 !> @file
 !> @brief Dispatch table mapping excitation controller model names to procedure pointers
 !! @details Contains the assoc_exciter_ptr subroutine, which resolves a model-name
-!!          string to the corresponding exciter procedure pointer.  Resolution order:
-!!          1. On Windows/Intel builds, loaded DLL modules are queried first via
-!!             GetProcAddress so that user-supplied models take precedence.
-!!          2. Built-in models are resolved through a select-case block covering
-!!             all excitation controllers shipped with RAMSES (e.g. ST1A, SEXS,
-!!             AC1A, AC4A, EXPIC1, and generic IEEE models).
+!!          string to the corresponding exciter procedure pointer through a
+!!          select-case block covering all excitation controllers compiled into
+!!          RAMSES (e.g. ST1A, SEXS, AC1A, AC4A, EXPIC1, and generic IEEE models).
 !!          The prefix "exc_" is automatically prepended to the model name if not
 !!          already present.
 
 !> @brief Map an excitation controller model name to its procedure pointer
-!! @details Prepends "exc_" to modelname if not already present, then attempts
-!!          to resolve the resulting string against loaded DLL modules (Windows/Intel
-!!          only) and subsequently against the built-in model select-case table.
+!! @details Prepends "exc_" to modelname if not already present, then resolves the
+!!          resulting string against the built-in model select-case table.
 !!          The caller must pass a valid procedure pointer variable; if the model
 !!          name is not found the pointer is left unchanged and no error is raised.
 !> @param[inout] modelname  Model name string (may be modified to add "exc_" prefix)
@@ -35,11 +31,6 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
    ! here alongside the pre-compiled ones above.
    external :: exc_ENTSOE_lim
    !<<STEPSS-GUI:EXTERNALS>>
-   integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
-   integer i, ret
-#if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
-   integer(BOOL) :: free_status
-#endif
 
    if(modelname(1:4)=='exc_')then
       modelname4=modelname
@@ -47,18 +38,6 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
       modelname4='exc_'//modelname
    endif
 
-
-#if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
-   do i=1,dll_handleno
-      if (dll_handle(i) .ne. NULL) then
-         p_USERFUNC = GetProcAddress (hModule=dll_handle(i), lpProcName=trim(modelname4)//C_NULL_CHAR)
-         if (p_USERFUNC .ne. NULL) then
-            call C_F_PROCPOINTER (TRANSFER(p_USERFUNC, C_NULL_FUNPTR), exc_ptr)
-            return
-         endif
-      endif
-   enddo
-#endif
 
    select case (modelname4)
       case('exc_kundur')

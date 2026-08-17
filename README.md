@@ -180,8 +180,7 @@ URAMSES/
 │   └── msvs/                   # Visual Studio build files (Windows/Intel)
 │       ├── URAMSES.sln         # Solution file
 │       ├── dllramses.vfproj    # DLL project, ramses.dll
-│       ├── exeramses.vfproj    # Executable project, dynsim.exe
-│       └── MDL.vfproj          # Model library project, ramsesmdl.dll
+│       └── exeramses.vfproj    # Executable project, dynsim.exe
 ├── examples/Nordic/            # Regression case used by the CI gate
 ├── tests/baselines/            # Reference trajectory for that case
 ├── tools/                      # Kit-verification, gate and release scripts
@@ -294,7 +293,7 @@ those DLLs next to `ramses.dll`, when loading it from Python.
 
 #### Visual Studio Projects
 
-The solution contains three projects:
+The solution contains two projects:
 
 1. **dllramses (ramses.dll)**
    - **Purpose**: Creates the main dynamic link library for stepss integration
@@ -307,15 +306,8 @@ The solution contains three projects:
    - **Usage**: Run simulations directly without Python/Java interface
    - **Features**: Includes all your custom models for standalone operation
 
-3. **MDL (ramsesmdl.dll)**
-   - **Purpose**: Auxiliary project for building a subset of models into a
-     separate library. Its source list is currently **empty**; the models it
-     used to carry are ones the RAMSES library already exports, so they were
-     removed to avoid duplicate-symbol link errors. Building it as shipped
-     produces an empty `ramsesmdl.dll`
-   - **Output**: `ramsesmdl.dll`
-   - **Usage**: Not needed for either stepss or standalone use; add your own
-     models to `dllramses` instead
+Add your own models to `dllramses` (or `exeramses` for the standalone route);
+there is no separate model library to build.
 
 #### Step-by-Step Build Process
 

@@ -4,13 +4,12 @@
 !!          mechanical-torque model name to the corresponding procedure pointer.
 !!          Built-in models include simplified ENTSO-E governor (ENTSOE_simp),
 !!          hydro governor (HYGOV), gas turbine (GAST), steam governor (TGOV1D /
-!!          TGOV1), and the DEGOV1 diesel governor.  DLL-supplied models are checked
-!!          first on Windows/Intel builds.  The prefix "tor_" is added automatically
-!!          when absent.
+!!          TGOV1), and the DEGOV1 diesel governor.  The prefix "tor_" is added
+!!          automatically when absent.
 
 !> @brief Map a torque/governor model name to its procedure pointer
-!! @details Prepends "tor_" to modelname if not already present, then queries
-!!          loaded DLL modules (Windows/Intel) before the built-in select-case table.
+!! @details Prepends "tor_" to modelname if not already present, then resolves it
+!!          against the built-in select-case table.
 !> @param[inout] modelname  Model name string (may be modified to add "tor_" prefix)
 !> @param[out]   tor_ptr    On exit, points to the torque subroutine for the named model
 subroutine assoc_torque_ptr(modelname,tor_ptr)
@@ -25,29 +24,12 @@ subroutine assoc_torque_ptr(modelname,tor_ptr)
    external :: tor_ENTSOE_simp, tor_DEGOV1
    external :: tor_hygov, tor_GAST, tor_TGOV1D
    !<<STEPSS-GUI:EXTERNALS>>
-   integer(C_INTPTR_T) :: p_USERFUNC  !< address returned by GetProcAddress for DLL lookup
-   integer i, ret
-#if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
-   integer(BOOL) :: free_status
-#endif
 
    if(modelname(1:4)=='tor_')then
       modelname4=modelname
    else
       modelname4='tor_'//modelname
    endif
-
-#if defined __INTEL_COMPILER && (defined _WIN64 || defined _WIN32)
-   do i=1,dll_handleno
-      if (dll_handle(i) .ne. NULL) then
-         p_USERFUNC = GetProcAddress (hModule=dll_handle(i), lpProcName=trim(modelname4)//C_NULL_CHAR)
-         if (p_USERFUNC .ne. NULL) then
-            call C_F_PROCPOINTER (TRANSFER(p_USERFUNC, C_NULL_FUNPTR), tor_ptr)
-            return
-         endif
-      endif
-   enddo
-#endif
 
    select case (modelname4)
    case('tor_ENTSOE_simp')
