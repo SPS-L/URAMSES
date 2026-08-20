@@ -21,7 +21,7 @@ subroutine assoc_dctl_ptr(modelname,dctl_ptr)
    character(len=20), intent(inout):: modelname    !< model name; "dctl_" prefix added if absent
    character(len=25):: modelname5                  !< internal name with guaranteed "dctl_" prefix
    procedure(dctl), pointer, intent(out) :: dctl_ptr  !< procedure pointer set to the matched discrete controller
-   external dctl_line_prot
+   external dctl_line_prot, dctl_injprot
    !<<STEPSS-GUI:EXTERNALS>>
 
    if(modelname(1:5)=='dctl_')then
@@ -31,8 +31,11 @@ subroutine assoc_dctl_ptr(modelname,dctl_ptr)
    endif
 
    select case (modelname5)
-       
-       case('dctl_line_prot')
+
+      case('dctl_injprot')
+         dctl_ptr=>dctl_injprot
+
+      case('dctl_line_prot')
          dctl_ptr=>dctl_line_prot
 
    !<<STEPSS-GUI:CASES>>

@@ -27,6 +27,7 @@ subroutine assoc_inj_ptr(modelname,inj_ptr)
    external inj_vfd_load
    external inj_PQ, inj_IBG, inj_WT3, inj_WT4, inj_BESS, inj_GFOR, inj_GFOL
    external inj_PMU
+   external inj_INDM1, inj_PV
    !<<STEPSS-GUI:EXTERNALS>>
 
    if(modelname(1:4)=='inj_')then
@@ -66,6 +67,12 @@ subroutine assoc_inj_ptr(modelname,inj_ptr)
 
       case('inj_PMU')
          inj_ptr=>inj_PMU
+
+      case('inj_INDM1')
+         inj_ptr=>inj_INDM1
+
+      case('inj_PV')
+         inj_ptr=>inj_PV
 
       !<<STEPSS-GUI:CASES>>
    end select

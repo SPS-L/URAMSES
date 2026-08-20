@@ -27,6 +27,11 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
    external :: exc_ENTSOE_simp, exc_ST1A, exc_AC1A, exc_AC4A, exc_IEEET5
    external :: exc_ST1A_IEEEST, exc_ST1A_PSS4B, exc_ST1A_PSS2B
    external :: exc_EXPIC1_PSS2B, exc_SEXS, exc_SEXS_IEEEST
+   external :: exc_AC1A_MAXEX2, exc_AC1A_RETRO, exc_AC1A_RETRO_PSS4B
+   external :: exc_AC8B, exc_AC8B_PSS3B_lim, exc_DC3A, exc_EXPIC1
+   external :: exc_EXPIC1_PSS2B_MAXEX2, exc_SEXS_STAB3_lim
+   external :: exc_ST1A_IEEEST_MAXEX2, exc_ST1A_lim, exc_ST1A_PSS2B_MAXEX2
+   external :: exc_ST1A_PSS3B, exc_ST1A_PSS4B_MAXEX2, exc_ST2A
    ! Models built from custom_models/ in this repository. Declare your own
    ! here alongside the pre-compiled ones above.
    external :: exc_ENTSOE_lim
@@ -66,6 +71,36 @@ subroutine assoc_exciter_ptr(modelname,exc_ptr)
          exc_ptr=>exc_ST1A_PSS2B
       case('exc_EXPIC1_PSS2B')
          exc_ptr=>exc_EXPIC1_PSS2B
+      case('exc_AC1A_MAXEX2')
+         exc_ptr=>exc_AC1A_MAXEX2
+      case('exc_AC1A_RETRO')
+         exc_ptr=>exc_AC1A_RETRO
+      case('exc_AC1A_RETRO_PSS4B')
+         exc_ptr=>exc_AC1A_RETRO_PSS4B
+      case('exc_AC8B')
+         exc_ptr=>exc_AC8B
+      case('exc_AC8B_PSS3B_lim')
+         exc_ptr=>exc_AC8B_PSS3B_lim
+      case('exc_DC3A')
+         exc_ptr=>exc_DC3A
+      case('exc_EXPIC1')
+         exc_ptr=>exc_EXPIC1
+      case('exc_EXPIC1_PSS2B_MAXEX2')
+         exc_ptr=>exc_EXPIC1_PSS2B_MAXEX2
+      case('exc_SEXS_STAB3_lim')
+         exc_ptr=>exc_SEXS_STAB3_lim
+      case('exc_ST1A_IEEEST_MAXEX2')
+         exc_ptr=>exc_ST1A_IEEEST_MAXEX2
+      case('exc_ST1A_lim')
+         exc_ptr=>exc_ST1A_lim
+      case('exc_ST1A_PSS2B_MAXEX2')
+         exc_ptr=>exc_ST1A_PSS2B_MAXEX2
+      case('exc_ST1A_PSS3B')
+         exc_ptr=>exc_ST1A_PSS3B
+      case('exc_ST1A_PSS4B_MAXEX2')
+         exc_ptr=>exc_ST1A_PSS4B_MAXEX2
+      case('exc_ST2A')
+         exc_ptr=>exc_ST2A
 
       ! Models compiled from custom_models/ in this repository. Add your own
       ! below; the name is what a .dat file's EXC record refers to, with or
