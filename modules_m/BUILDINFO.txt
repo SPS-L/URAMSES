@@ -1,7 +1,7 @@
 kit_dir          modules_m
-ramses_tag       v3.80
-ramses_commit    95d9d2923e68b4b598efe3f13f095bd43c365dcd
-built_utc        2026-08-22T00:10:51Z
+ramses_tag       v3.81
+ramses_commit    3d133cbe36e52261719c16b15764548b0b453543
+built_utc        2026-08-22T09:41:34Z
 runner_image     macos-15 (arm64)
 compiler         GNU Fortran (Homebrew GCC 16.1.0) 16.1.0
 target           aarch64-apple-darwin24
